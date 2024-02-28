@@ -17,8 +17,17 @@ This is the [GitHub Advanced Security][advanced-security] (GHAS) Toolkit in [Rus
 
 ## ✨ Features
 
-- Core GHAS Library
-- CLI Tool
+- [Core GHAS Library][code-core]
+  - [Documentation][docs]
+  - GitHub Cloud and Enterprise Server support
+  - API Support
+    - [x] [Code Scanning][github-code-scanning]
+    - [ ] 👷 [Secret Scanning][github-secret-scanning]
+    - [ ] 👷 [Supply Chain][github-supplychain]
+      - [ ] 👷 [Dependabot][github-dependabot] (Security Alerts)
+      - [ ] 👷 [Dependency Graph][github-depgraph] (SCA / SBOMs)
+      - [ ] 👷 [Security Advisories][github-advisories]
+- [CLI Tool][code-cli]
 
 ## Usage
 
@@ -61,7 +70,17 @@ Please refer to [MIT][license] for the full terms.
 
 [license]: ./LICENSE
 [crates-io]: https://crates.io/crates/ghastoolkit
+[docs]: https://docs.rs/ghastoolkit/latest/ghastoolkit/
 [rust-lang]: https://www.rust-lang.org/
 [advanced-security]: https://github.com/features/security
+[code-core]: https://github.com/GeekMasher/ghastoolkit-rs/tree/main/core
+[code-cli]: https://github.com/GeekMasher/ghastoolkit-rs/tree/main/cli
 [github]: https://github.com/geekmasher/ghastoolkit-rs
 [github-issues]: https://github.com/geekmasher/ghastoolkit-rs/issues
+[github-code-scanning]: https://docs.github.com/en/code-security/code-scanning/introduction-to-code-scanning/about-code-scanning
+[github-secret-scanning]: https://docs.github.com/en/code-security/secret-scanning/about-secret-scanning
+[github-supplychain]: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-supply-chain-security
+[github-dependabot]: https://docs.github.com/en/code-security/dependabot/dependabot-alerts/about-dependabot-alerts
+[github-depgraph]: https://docs.github.com/en/code-security/supply-chain-security/understanding-your-software-supply-chain/about-the-dependency-graph
+[github-advisories]: https://docs.github.com/en/code-security/security-advisories/working-with-global-security-advisories-from-the-github-advisory-database/about-the-github-advisory-database
+
