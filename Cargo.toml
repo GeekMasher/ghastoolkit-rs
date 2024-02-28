@@ -1,25 +1,3 @@
-[package]
-name = "ghastoolkit"
-version = "0.0.0"
-
-description = "GitHub Advanced Security Toolkit in Rust"
-keywords = ["github", "security", "ghas"]
-homepage = "https://github.com/GeekMasher/ghastoolkit-rs"
-repository = "https://github.com/GeekMasher/ghastoolkit-rs"
-
-authors = ["GeekMasher"]
-license = "MIT"
-
-
-rust-version = "1.70"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
-[dependencies]
-dotenv = "0.15"
-log = "0.4"
-octocrab = "0.34"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-serde_yaml = "0.9"
+[workspace]
+resolver = "2"
+members = ["core", "cli"]
