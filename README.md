@@ -22,16 +22,24 @@ This is the [GitHub Advanced Security][advanced-security] (GHAS) Toolkit in [Rus
 
 ## Usage
 
+To use the library in your project, add it to your project using the following command:
+
 ```bash
 cargo add ghastoolkit
 ```
 
-## Install
+## Install CLI
+
+You can install the CLI many different ways but the easiest way is the following:
+
+```bash
+cargo install ghastoolkit-cli
+```
 
 ### From GitHub
 
 ```bash
-cargo install --git https://github.com/geekMasher/ghastoolkit-rs
+cargo install --git https://github.com/GeekMasher/ghastoolkit-rs
 ```
 
 ## Maintainers / Contributors
