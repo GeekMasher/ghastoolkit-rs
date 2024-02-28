@@ -10,6 +10,8 @@ repository = "https://github.com/GeekMasher/ghastoolkit-rs"
 authors = ["GeekMasher"]
 license = "MIT"
 
+readme = "../README.md"
+
 rust-version = "1.70"
 edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
