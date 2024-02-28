@@ -26,6 +26,13 @@ This is the [GitHub Advanced Security][advanced-security] (GHAS) Toolkit in [Rus
 cargo add ghastoolkit
 ```
 
+## Install
+
+### From GitHub
+
+```bash
+cargo install --git https://github.com/geekMasher/ghastoolkit-rs
+```
 
 ## Maintainers / Contributors
 
