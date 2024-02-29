@@ -24,6 +24,6 @@ console = "0.15.8"
 dotenv = { version = "0.15.0", features = ["clap"] }
 env_logger = "0.11.2"
 # ghastoolkit = { path = "../core" }
-ghastoolkit = "0.1.1"
+ghastoolkit = "0.1"
 log = "0.4.20"
 tokio = { version = "1.36.0", features = ["full"] }
