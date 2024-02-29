@@ -104,7 +104,7 @@ impl GitHub {
         repo: &mut Repository,
         path: &String,
     ) -> Result<GitRepository, GHASError> {
-        let url = self.clone_repository_url(&repo)?;
+        let url = self.clone_repository_url(repo)?;
         match GitRepository::clone(url.as_str(), path.as_str()) {
             Ok(gitrepo) => {
                 repo.set_root(PathBuf::from(path));
