@@ -1,2 +1,2 @@
-pub mod codescanning;
+pub mod api;
 pub mod models;
