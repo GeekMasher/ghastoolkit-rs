@@ -5,7 +5,7 @@ use log::debug;
 use octocrab::Octocrab;
 use url::Url;
 
-use crate::{codescanning::codescanning::CodeScanningHandler, GHASError, Repository};
+use crate::{codescanning::api::CodeScanningHandler, GHASError, Repository};
 
 #[derive(Debug, Clone)]
 pub struct GitHub {
@@ -44,20 +44,35 @@ impl GitHub {
     /// ```rust
     /// use ghastoolkit::GitHub;
     ///
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let github = GitHub::init()
     ///     .owner("geekmasher")
     ///     .token("personal_access_token")
     ///     .build()
-    ///     .unwrap();
+    ///     .expect("Failed to initialise GitHub instance");
+    /// # }
     /// ```
     pub fn init() -> GitHubBuilder {
         GitHubBuilder::default()
     }
 
+    /// Check if the GitHub instance is for Enterprise Server or Cloud.
+    /// This is done based off the URL provided.
     pub fn is_enterprise_server(&self) -> bool {
         self.enterprise_server
     }
 
+    /// Get the GitHub instance URL as a String
+    pub fn instance(&self) -> String {
+        self.instance.to_string()
+    }
+
+    pub fn token(&self) -> Option<&String> {
+        self.token.as_ref()
+    }
+
+    /// Get the URL used for clong a repository.
     fn clone_repository_url(&self, repo: &Repository) -> Result<String, GHASError> {
         if self.github_app {
             // GitHub Apps require a different URL
@@ -90,10 +105,38 @@ impl GitHub {
         }
     }
 
+    /// Get the pre-build instance of Octocrab.
+    /// This has automatically configured the base URI, PAT, and other settings.
+    ///
+    /// # Example
+    /// ```no_run
+    /// # use anyhow::Result;
+    /// use ghastoolkit::GitHub;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() -> Result<()> {
+    /// let github = GitHub::init()
+    ///     .owner("geekmasher")
+    ///     .token("personal_access_token")
+    ///     .build()
+    ///     .expect("Failed to initialise GitHub instance");
+    ///
+    /// let octocrab = github.octocrab();
+    ///
+    /// let issues = octocrab.issues("geekmasher", "ghastoolkit-rs")
+    ///     .list()
+    ///     .state(octocrab::params::State::Open)
+    ///     .send()
+    ///     .await?;
+    ///
+    /// # Ok(())
+    /// # }
+    /// ```
     pub fn octocrab(&self) -> &octocrab::Octocrab {
         &self.octocrab
     }
 
+    /// Get Code Scanning Handler based on the Repository provided.
     pub fn code_scanning<'a>(&'a self, repo: &'a Repository) -> CodeScanningHandler {
         CodeScanningHandler::new(self.octocrab(), repo)
     }
@@ -104,7 +147,7 @@ impl GitHub {
         repo: &mut Repository,
         path: &String,
     ) -> Result<GitRepository, GHASError> {
-        let url = self.clone_repository_url(&repo)?;
+        let url = self.clone_repository_url(repo)?;
         match GitRepository::clone(url.as_str(), path.as_str()) {
             Ok(gitrepo) => {
                 repo.set_root(PathBuf::from(path));
@@ -128,6 +171,7 @@ impl Display for GitHub {
 }
 
 impl Default for GitHub {
+    /// Default values for github.com
     fn default() -> Self {
         Self {
             octocrab: Octocrab::default(),
@@ -156,6 +200,22 @@ pub struct GitHubBuilder {
 }
 
 impl GitHubBuilder {
+    /// Set the Instance URL for the GitHub Enterprise Server.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ghastoolkit::GitHub;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let github = GitHub::init()
+    ///     .instance("https://github.geekmasher.dev/")
+    ///     .build()
+    ///     .expect("Failed to initialise GitHub instance");
+    ///
+    /// # assert_eq!(github.instance(), "https://github.geekmasher.dev/");
+    /// # }
+    /// ```
     pub fn instance(&mut self, instance: &str) -> &mut Self {
         self.instance = Url::parse(instance).expect("Failed to parse instance URL");
 
@@ -173,28 +233,64 @@ impl GitHubBuilder {
 
         self
     }
-
+    /// Set the Token used to authenticate with GitHub.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ghastoolkit::GitHub;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let github = GitHub::init()
+    ///     .token("personal_access_token")
+    ///     .build()
+    ///     .expect("Failed to initialise GitHub instance");
+    ///
+    /// # assert_eq!(github.token(), Some(&String::from("personal_access_token")));
+    /// # }
+    /// ```
     pub fn token(&mut self, token: &str) -> &mut Self {
         self.token = Some(token.to_string());
         self
     }
 
+    /// Set the Owner (Username or Organization).
     pub fn owner(&mut self, owner: &str) -> &mut Self {
         if !owner.is_empty() {
             self.owner = Some(owner.to_string());
         }
         self
     }
+
+    /// Set the Enterprise Account name.
     pub fn enterprise(&mut self, enterprise: &str) -> &mut Self {
         self.enterprise = Some(enterprise.to_string());
         self
     }
 
+    /// Set the GitHub App flag. This is mainly used for changing the rate limits and other
+    /// settings.
     pub fn github_app(&mut self, github_app: bool) -> &mut Self {
         self.github_app = github_app;
         self
     }
 
+    /// Build the GitHub instance with the provided settings.
+    ///
+    /// # Example
+    /// ```rust
+    /// use ghastoolkit::GitHub;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let github = GitHub::init()
+    ///     .instance("https://github.geekmasher.dev/")
+    ///     .owner("geekmasher")
+    ///     .token("personal_access_token")
+    ///     .build()
+    ///     .expect("Failed to initialise GitHub instance");
+    /// # }
+    /// ```
     pub fn build(&self) -> Result<GitHub, GHASError> {
         let token = match self.token.clone() {
             Some(token) => Some(token),
@@ -245,8 +341,8 @@ impl Default for GitHubBuilder {
 mod test {
     use super::*;
 
-    #[test]
-    fn test_github_builder() {
+    #[tokio::test]
+    async fn test_github_builder() {
         let gh = GitHub::init()
             .instance("https://github.com")
             .token("token")
@@ -259,17 +355,20 @@ mod test {
         assert_eq!(gh.owner, Some("geekmasher".to_string()));
     }
 
-    #[test]
-    fn test_repo_clone_url() {
+    #[tokio::test]
+    async fn test_repo_clone_url() {
         let gh = GitHub::init()
             .instance("https://github.com")
             .token("token")
             .owner("geekmasher")
             .build()
             .expect("Failed to build GitHub instance");
-        let repo = Repository::try_from("geekmasher/ghastoolkit@main").unwrap();
+        let repo = Repository::try_from("geekmasher/ghastoolkit@main")
+            .expect("Failed to parse repository");
 
-        let url = gh.clone_repository_url(&repo).unwrap();
+        let url = gh
+            .clone_repository_url(&repo)
+            .expect("Failed to get clone URL");
         assert_eq!(url, "https://token@github.com/geekmasher/ghastoolkit.git");
     }
 }

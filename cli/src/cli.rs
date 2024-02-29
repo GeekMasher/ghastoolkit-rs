@@ -6,13 +6,13 @@ use ghastoolkit::{GitHub, Repository};
 pub const VERSION_NUMBER: &str = env!("CARGO_PKG_VERSION");
 pub const AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
 
-pub const BANNER: &str = r#"
+pub const BANNER: &str = r"
  _____  _   _   ___   _____ _____           _ _    _ _   
 |  __ \| | | | / _ \ /  ___|_   _|         | | |  (_) |  
 | |  \/| |_| |/ /_\ \\ `--.  | | ___   ___ | | | ___| |_ 
 | | __ |  _  ||  _  | `--. \ | |/ _ \ / _ \| | |/ / | __|
 | |_\ \| | | || | | |/\__/ / | | (_) | (_) | |   <| | |_ 
- \____/\_| |_/\_| |_/\____/  \_/\___/ \___/|_|_|\_\_|\__|"#;
+ \____/\_| |_/\_| |_/\____/  \_/\___/ \___/|_|_|\_\_|\__|";
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]

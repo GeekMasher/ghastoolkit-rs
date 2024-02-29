@@ -16,6 +16,8 @@ impl<'octo> CodeScanningHandler<'octo> {
         Self { crab, repository }
     }
 
+    /// Check if GitHub Code Scanning is enabled. This is done by checking
+    /// if the there is any analyses present for the repository.
     pub async fn is_enabled(&self) -> bool {
         match self.analyses().per_page(1).send().await {
             Ok(_) => true,

@@ -6,9 +6,9 @@ mod cli;
 async fn code_scanning(github: &GitHub, repository: &Repository, audit: bool) -> Result<()> {
     println!("\n ----- Code Scanning -----");
 
-    if github.code_scanning(&repository).is_enabled().await {
+    if github.code_scanning(repository).is_enabled().await {
         let analyses = github
-            .code_scanning(&repository)
+            .code_scanning(repository)
             .analyses()
             .tool_name("codeql")
             .per_page(1)
@@ -24,7 +24,7 @@ async fn code_scanning(github: &GitHub, repository: &Repository, audit: bool) ->
 
         if audit {
             let alerts = github
-                .code_scanning(&repository)
+                .code_scanning(repository)
                 .list()
                 .state("open")
                 .send()
