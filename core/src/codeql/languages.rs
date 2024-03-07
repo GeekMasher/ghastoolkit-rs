@@ -66,6 +66,7 @@ impl CodeQLLanguage {
 
     /// Get the list of supported languages
     pub fn list() -> Vec<&'static str> {
+        // TODO(geekmasher): This could be a lot cleaner
         vec![
             "c",
             "cpp",
@@ -90,7 +91,7 @@ impl Display for CodeQLLanguage {
 
 impl From<&str> for CodeQLLanguage {
     fn from(s: &str) -> Self {
-        match s {
+        match s.to_lowercase().as_str() {
             "c" => CodeQLLanguage::C,
             "cpp" | "c++" => CodeQLLanguage::Cpp,
             "csharp" | "c#" => CodeQLLanguage::CSharp,
@@ -119,5 +120,50 @@ impl From<Option<String>> for CodeQLLanguage {
             Some(s) => CodeQLLanguage::from(s),
             None => CodeQLLanguage::None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::codeql::CodeQLLanguage;
+
+    #[test]
+    fn test_parsing() {
+        let lang1 = CodeQLLanguage::from("c");
+        assert_eq!(lang1, CodeQLLanguage::C);
+
+        let lang2 = CodeQLLanguage::from("cpp");
+        assert_eq!(lang2, CodeQLLanguage::Cpp);
+
+        let lang3 = CodeQLLanguage::from("csharp");
+        assert_eq!(lang3, CodeQLLanguage::CSharp);
+
+        let lang4 = CodeQLLanguage::from("kotlin");
+        assert_eq!(lang4, CodeQLLanguage::Kotlin);
+        assert_eq!(lang4.language(), "java");
+    }
+
+    #[test]
+    fn test_pretty() {
+        let py = CodeQLLanguage::Python;
+        assert_eq!(py.pretty(), "Python");
+        assert_eq!(py.language(), "python");
+
+        let cs = CodeQLLanguage::CSharp;
+        assert_eq!(cs.pretty(), "C#");
+        assert_eq!(cs.language(), "csharp");
+    }
+
+    #[test]
+    fn test_incorrect() {
+        // RIP Rust
+        let lang = CodeQLLanguage::from("rust");
+        assert_eq!(lang, CodeQLLanguage::None);
+
+        let lang = CodeQLLanguage::from(Some("rust".to_string()));
+        assert_eq!(lang, CodeQLLanguage::None);
+
+        let lang = CodeQLLanguage::from(None);
+        assert_eq!(lang, CodeQLLanguage::None);
     }
 }
