@@ -62,8 +62,6 @@
 //!     .expect("Failed to analyze CodeQL database");
 //!```
 
-/// This module contains the codeql alerts struct and its methods
-pub mod alerts;
 /// This module contains the codeql struct and its methods
 pub mod cli;
 /// This module contains the codeql database struct and its methods
