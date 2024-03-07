@@ -194,7 +194,7 @@ impl Display for CodeQLDatabase {
 pub struct CodeQLDatabaseBuilder {
     name: String,
     path: Option<PathBuf>,
-    language: Option<CodeQLLanguage>,
+    language: CodeQLLanguage,
     source: Option<PathBuf>,
     repository: Option<Repository>,
     config: Option<CodeQLDatabaseConfig>,
@@ -227,7 +227,7 @@ impl CodeQLDatabaseBuilder {
             };
             debug!("Loaded database configuration: {:?}", &path);
 
-            self.language = Some(CodeQLLanguage::from(config.primary_language));
+            self.language = CodeQLLanguage::from(config.primary_language);
             if let Some(source) = config.source_location_prefix {
                 self.source = Some(PathBuf::from(source));
             }
@@ -258,7 +258,7 @@ impl CodeQLDatabaseBuilder {
     /// Set the language of the database
     pub fn language(mut self, language: String) -> Self {
         if !language.is_empty() {
-            self.language = Some(CodeQLLanguage::from(language));
+            self.language = CodeQLLanguage::from(language);
         }
         self
     }
@@ -272,7 +272,7 @@ impl CodeQLDatabaseBuilder {
 
     /// Set the configuration for the database
     pub fn config(mut self, config: CodeQLDatabaseConfig) -> Self {
-        self.language = Some(CodeQLLanguage::from(config.primary_language.clone()));
+        self.language = CodeQLLanguage::from(config.primary_language.clone());
         self.config = Some(config);
         self
     }
@@ -284,11 +284,11 @@ impl CodeQLDatabaseBuilder {
         if let Some(ref repo) = self.repository {
             path.push(repo.owner());
             path.push(repo.name());
-            if let Some(lang) = &self.language {
-                path.push(lang.language());
+            if self.language != CodeQLLanguage::None {
+                path.push(self.language.language());
             }
-        } else if let Some(lang) = &self.language {
-            path.push(format!("{lang}-{}", self.name));
+        } else if self.language != CodeQLLanguage::None {
+            path.push(format!("{}-{}", self.language.language(), self.name));
         } else {
             path.push(self.name.clone());
         }
@@ -312,7 +312,7 @@ impl CodeQLDatabaseBuilder {
         Ok(CodeQLDatabase {
             name: self.name.clone(),
             path,
-            language: CodeQLLanguage::from(self.language.clone().unwrap_or_default()),
+            language: self.language.clone(),
             source: self.source.clone(),
             repository: self.repository.clone(),
             config: self.config.clone(),

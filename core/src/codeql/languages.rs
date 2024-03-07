@@ -112,3 +112,12 @@ impl From<String> for CodeQLLanguage {
         CodeQLLanguage::from(s.as_str())
     }
 }
+
+impl From<Option<String>> for CodeQLLanguage {
+    fn from(s: Option<String>) -> Self {
+        match s {
+            Some(s) => CodeQLLanguage::from(s),
+            None => CodeQLLanguage::None,
+        }
+    }
+}

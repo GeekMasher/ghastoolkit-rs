@@ -147,8 +147,8 @@ impl CodeQLBuilder {
 
         Ok(CodeQL {
             path,
-            threads: self.threads.clone().into(),
-            ram: self.ram.clone().into(),
+            threads: self.threads,
+            ram: self.ram.into(),
         })
     }
 }
