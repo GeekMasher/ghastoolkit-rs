@@ -5,6 +5,7 @@ use crate::{
 use log::debug;
 use octocrab::{Octocrab, Page, Result as OctoResult};
 
+/// Code Scanning Handler
 #[derive(Debug, Clone)]
 pub struct CodeScanningHandler<'octo> {
     crab: &'octo Octocrab,
@@ -12,6 +13,7 @@ pub struct CodeScanningHandler<'octo> {
 }
 
 impl<'octo> CodeScanningHandler<'octo> {
+    /// Create a new Code Scanning Handler instance
     pub(crate) fn new(crab: &'octo Octocrab, repository: &'octo Repository) -> Self {
         Self { crab, repository }
     }
@@ -45,11 +47,13 @@ impl<'octo> CodeScanningHandler<'octo> {
         self.crab.get(route, None::<&()>).await
     }
 
+    /// Get a list of code scanning analyses for a repository
     pub fn analyses(&self) -> ListCodeScanningAnalyses {
         ListCodeScanningAnalyses::new(self)
     }
 }
 
+/// List Code Scanning Analyses
 #[derive(Debug, serde::Serialize)]
 pub struct ListCodeScanningAlerts<'octo, 'b> {
     #[serde(skip)]
@@ -79,26 +83,31 @@ impl<'octo, 'b> ListCodeScanningAlerts<'octo, 'b> {
         }
     }
 
+    /// Set the state of the code scanning alert
     pub fn state(mut self, state: &str) -> Self {
         self.state = Some(state.to_string());
         self
     }
 
+    /// Set the tool name of the code scanning alert
     pub fn tool_name(mut self, tool_name: &str) -> Self {
         self.tool_name = Some(tool_name.to_string());
         self
     }
 
+    /// Set the number of items per page
     pub fn per_page(mut self, per_page: impl Into<u8>) -> Self {
         self.per_page = Some(per_page.into());
         self
     }
 
+    /// Set the page number
     pub fn page(mut self, page: impl Into<u8>) -> Self {
         self.page = Some(page.into());
         self
     }
 
+    /// Send the request
     pub async fn send(self) -> OctoResult<Page<CodeScanningAlert>> {
         let route = format!(
             "/repos/{owner}/{repo}/code-scanning/alerts",
@@ -146,31 +155,37 @@ impl<'octo, 'b> ListCodeScanningAnalyses<'octo, 'b> {
         }
     }
 
+    /// Set the ref of the code scanning analysis
     pub fn r#ref(mut self, r#ref: &str) -> Self {
         self.r#ref = Some(r#ref.to_string());
         self
     }
 
+    /// Set the tool name of the code scanning analysis
     pub fn tool_name(mut self, tool_name: &str) -> Self {
         self.tool_name = Some(tool_name.to_string());
         self
     }
 
+    /// Set the sarif id of the code scanning analysis
     pub fn sarif_id(mut self, sarif_id: &str) -> Self {
         self.sarif_id = Some(sarif_id.to_string());
         self
     }
 
+    /// Set the number of items per page
     pub fn per_page(mut self, per_page: impl Into<u8>) -> Self {
         self.per_page = Some(per_page.into());
         self
     }
 
+    /// Set the page number
     pub fn page(mut self, page: impl Into<u8>) -> Self {
         self.page = Some(page.into());
         self
     }
 
+    /// Send the request
     pub async fn send(self) -> OctoResult<Page<CodeScanningAnalysis>> {
         let route = format!(
             "/repos/{owner}/{repo}/code-scanning/analyses",

@@ -6,6 +6,7 @@ use regex::Regex;
 
 use crate::errors::GHASError;
 
+/// GitHub Repository
 #[derive(Debug, Default, Clone)]
 pub struct Repository {
     /// Owner of the repository (organization or user)
@@ -25,6 +26,7 @@ pub struct Repository {
 }
 
 impl Repository {
+    /// Create a new Repository instance with owner (organization or user) and repo name
     pub fn new(owner: String, repo: String) -> Self {
         Self {
             owner,
@@ -111,22 +113,28 @@ impl Repository {
         debug!("Repository root does not exist");
         None
     }
-}
 
-impl Display for Repository {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(branch) = &self.branch {
-            write!(f, "{}/{}@{}", self.owner, self.name, branch)
-        } else {
-            write!(f, "{}/{}", self.owner, self.name)
-        }
-    }
-}
-
-impl TryFrom<&str> for Repository {
-    type Error = GHASError;
-
-    fn try_from(reporef: &str) -> Result<Self, Self::Error> {
+    /// Parse and return a Repository instance from a repository reference
+    ///
+    /// # Samples:
+    ///
+    /// - `geekmasher/ghastoolkit-rs`
+    /// - `geekmasher/ghastoolkit-rs@main`
+    /// - `geekmasher/ghastoolkit-rs:src/main.rs`
+    /// - `geekmasher/ghastoolkit-rs:src/main.rs@main`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use ghastoolkit::Repository;
+    ///
+    /// let repo = Repository::parse("geekmasher/ghastoolkit-rs")
+    ///     .expect("Failed to parse repository reference");
+    ///
+    /// println!("{}", repo);
+    /// ```
+    ///
+    pub fn parse(reporef: &str) -> Result<Repository, GHASError> {
         let mut repository = Repository::default();
 
         // regex match check
@@ -164,6 +172,25 @@ impl TryFrom<&str> for Repository {
     }
 }
 
+impl Display for Repository {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(branch) = &self.branch {
+            write!(f, "{}/{}@{}", self.owner, self.name, branch)
+        } else {
+            write!(f, "{}/{}", self.owner, self.name)
+        }
+    }
+}
+
+impl TryFrom<&str> for Repository {
+    type Error = GHASError;
+
+    fn try_from(reporef: &str) -> Result<Self, Self::Error> {
+        Repository::parse(reporef)
+    }
+}
+
+/// Repository Builder pattern
 #[derive(Debug, Default, Clone)]
 pub struct RepositoryBuilder {
     owner: String,
@@ -175,16 +202,19 @@ pub struct RepositoryBuilder {
 }
 
 impl RepositoryBuilder {
+    /// Set the Repository owner
     pub fn owner(&mut self, owner: &str) -> &mut Self {
         self.owner = owner.to_string();
         self
     }
 
+    /// Set the Repository name
     pub fn name(&mut self, name: &str) -> &mut Self {
         self.name = name.to_string();
         self
     }
 
+    /// Set the Repository owner/name
     pub fn repo(&mut self, repo: &str) -> &mut Self {
         if let Some((owner, name)) = repo.split_once('/') {
             self.owner = owner.to_string();
@@ -193,6 +223,7 @@ impl RepositoryBuilder {
         self
     }
 
+    /// Set the Repository reference
     pub fn reference(&mut self, reference: &str) -> &mut Self {
         self.reference = Some(reference.to_string());
         if let Some((_, branch)) = reference.split_once("heads/") {
@@ -201,22 +232,26 @@ impl RepositoryBuilder {
         self
     }
 
+    /// Set the Repository branch
     pub fn branch(&mut self, branch: &str) -> &mut Self {
         self.branch = Some(branch.to_string());
         self.reference = Some(format!("refs/heads/{}", branch));
         self
     }
 
+    /// Set the Repository path
     pub fn path(&mut self, path: &str) -> &mut Self {
         self.path = PathBuf::from(path);
         self
     }
 
+    /// Set the Repository root source path
     pub fn root(&mut self, root: &str) -> &mut Self {
         self.root = PathBuf::from(root);
         self
     }
 
+    /// Build the Repository
     pub fn build(&self) -> Result<Repository, GHASError> {
         Ok(Repository {
             owner: self.owner.clone(),

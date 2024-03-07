@@ -2,11 +2,14 @@ use std::{fmt::Display, path::PathBuf};
 
 use git2::Repository as GitRepository;
 use log::debug;
-use octocrab::Octocrab;
+use octocrab::{Octocrab, Result as OctoResult};
 use url::Url;
 
-use crate::{codescanning::api::CodeScanningHandler, GHASError, Repository};
+use crate::{
+    codescanning::api::CodeScanningHandler, octokit::models::GitHubLanguages, GHASError, Repository,
+};
 
+/// GitHub instance
 #[derive(Debug, Clone)]
 pub struct GitHub {
     /// Octocrab instance
@@ -68,6 +71,7 @@ impl GitHub {
         self.instance.to_string()
     }
 
+    /// Get the GitHub Token
     pub fn token(&self) -> Option<&String> {
         self.token.as_ref()
     }
@@ -141,6 +145,12 @@ impl GitHub {
         CodeScanningHandler::new(self.octocrab(), repo)
     }
 
+    /// Get Repository languages from GitHub
+    pub async fn list_languages(&self, repo: &Repository) -> OctoResult<GitHubLanguages> {
+        let route = format!("/repos/{}/{}/languages", repo.owner(), repo.name());
+        self.octocrab.get(route, None::<&()>).await
+    }
+
     /// Clone a GitHub Repository to a local path
     pub fn clone_repository(
         &self,
@@ -171,15 +181,26 @@ impl Display for GitHub {
 }
 
 impl Default for GitHub {
-    /// Default values for github.com
+    /// GitHub defaults to using Environment Variables for the GitHub instance and token.
     fn default() -> Self {
+        let instance = match std::env::var("GITHUB_INSTANCE") {
+            Ok(val) => Url::parse(val.as_str()).expect("Failed to parse GitHub instance URL"),
+            Err(_) => {
+                Url::parse("https://github.com").expect("Failed to parse GitHub instance URL")
+            }
+        };
+        // TODO(geekmasher): REST API
+        let token = match std::env::var("GITHUB_TOKEN") {
+            Ok(val) => Some(val),
+            Err(_) => None,
+        };
+
         Self {
             octocrab: Octocrab::default(),
             owner: None,
             enterprise: None,
-            token: None,
-            instance: Url::parse("https://github.com")
-                .expect("Failed to parse GitHub instance URL"),
+            token,
+            instance,
             api_rest: Url::parse("https://api.github.com")
                 .expect("Failed to parse GitHub REST API URL"),
             enterprise_server: false,
@@ -188,6 +209,7 @@ impl Default for GitHub {
     }
 }
 
+/// GitHub Builder
 #[derive(Debug, Clone)]
 pub struct GitHubBuilder {
     owner: Option<String>,
