@@ -8,3 +8,18 @@ actions:
 - changed-files:
   - any-glob-to-any-file:
     - ".github/workflows/**"
+
+octokit:
+- changed-files:
+  - any-glob-to-any-file:
+    - "core/src/octokit"
+
+codeql:
+- changed-files:
+  - any-glob-to-any-file:
+    - "core/src/codeql"
+
+codescanning:
+- changed-files:
+  - any-glob-to-any-file:
+    - "core/src/codescanning"
