@@ -18,6 +18,52 @@
 //!    println!("Database :: {}", database);
 //! }
 //! ```
+//!
+//! You can also use the builder pattern to create a new CodeQL CLI instance:
+//!
+//! ```rust
+//! use ghastoolkit::codeql::CodeQL;
+//!
+//! let codeql = CodeQL::init()
+//!     .path(String::from("/path/to/codeql"))
+//!     .threads(4)
+//!     .ram(8000)
+//!     .build()
+//!     .expect("Failed to create CodeQL instance");
+//! ```
+//!
+//! ## CodeQL Database
+//!
+//! If you want to create and analyze a CodeQL database, you can use the `CodeQLDatabase` struct:
+//!
+//! ```no_run
+//! use ghastoolkit::codeql::{CodeQL, CodeQLDatabase};
+//!
+//! let codeql = CodeQL::default();
+//!
+//! // Create a new CodeQL database
+//! let database = CodeQLDatabase::init()
+//!     .name("ghastoolkit")
+//!     .language("python")
+//!     .source(String::from("/path/to/source"))
+//!     .build()
+//!     .expect("Failed to create CodeQL database");
+//!
+//! println!("Database :: {}", database);
+//!
+//! // Create a new CodeQL database
+//! codeql.database(&database)
+//!     .overwrite()
+//!     .create()
+//!     .expect("Failed to create CodeQL database");
+//!
+//! let results = codeql.database(&database)
+//!     .analyze()
+//!     .expect("Failed to analyze CodeQL database");
+//!```
+
+/// This module contains the codeql alerts struct and its methods
+pub mod alerts;
 /// This module contains the codeql struct and its methods
 pub mod cli;
 /// This module contains the codeql database struct and its methods

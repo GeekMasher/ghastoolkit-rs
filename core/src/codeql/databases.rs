@@ -60,6 +60,22 @@ impl CodeQLDatabases {
         }
     }
 
+    /// Get the default path for CodeQL results
+    pub fn default_results() -> PathBuf {
+        match std::env::var("CODEQL_RESULTS") {
+            Ok(p) => PathBuf::from(p),
+            Err(_) => match std::env::var("HOME") {
+                Ok(p) => {
+                    let mut base = PathBuf::from(p);
+                    base.push(".codeql");
+                    base.push("results");
+                    base
+                }
+                Err(_) => PathBuf::from("/tmp/codeql"),
+            },
+        }
+    }
+
     /// Walk directory to find all CodeQL databases.
     pub fn load(path: String) -> CodeQLDatabases {
         debug!("Loading databases from: {}", path);

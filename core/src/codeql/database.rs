@@ -17,6 +17,8 @@ use crate::{
 pub mod config;
 /// CodeQL Database Handler
 pub mod handler;
+/// CodeQL Queries
+pub mod queries;
 
 /// CodeQL Database
 #[derive(Debug, Clone, Default)]
@@ -97,6 +99,20 @@ impl CodeQLDatabase {
         0
     }
 
+    /// Reload the database configuration
+    pub fn reload(&mut self) -> Result<(), GHASError> {
+        debug!("Reloading CodeQL Database Configuration");
+        if self.validate() {
+            let config = CodeQLDatabaseConfig::read(&self.configuration_path())?;
+            self.config = Some(config);
+            Ok(())
+        } else {
+            Err(GHASError::CodeQLDatabaseError(
+                "Invalid CodeQL Database".to_string(),
+            ))
+        }
+    }
+
     /// Load a database from a directory
     pub fn load(path: String) -> Result<CodeQLDatabase, GHASError> {
         let mut config_path = std::path::PathBuf::from(path.clone());
@@ -163,13 +179,16 @@ impl From<&Path> for CodeQLDatabase {
 
 impl Display for CodeQLDatabase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "CodeQLDatabase('{}', '{}', '{}')",
-            self.name,
-            self.language,
-            self.version(),
-        )
+        let version = self.version();
+        if version.as_str() == "0.0.0" {
+            write!(f, "CodeQLDatabase('{}', '{}')", self.name, self.language)
+        } else {
+            write!(
+                f,
+                "CodeQLDatabase('{}', '{}', '{}')",
+                self.name, self.language, version
+            )
+        }
     }
 }
 
@@ -202,10 +221,8 @@ pub struct CodeQLDatabaseBuilder {
 
 impl CodeQLDatabaseBuilder {
     /// Set the name of the database
-    pub fn name(mut self, name: String) -> Self {
-        if !name.is_empty() {
-            self.name = name;
-        }
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
         self
     }
 
@@ -256,10 +273,8 @@ impl CodeQLDatabaseBuilder {
     }
 
     /// Set the language of the database
-    pub fn language(mut self, language: String) -> Self {
-        if !language.is_empty() {
-            self.language = CodeQLLanguage::from(language);
-        }
+    pub fn language(mut self, language: impl Into<String>) -> Self {
+        self.language = CodeQLLanguage::from(language.into());
         self
     }
 
