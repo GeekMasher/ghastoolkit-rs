@@ -4,12 +4,19 @@
 //!
 //! ## Usage
 //!
-//! ```rust
-//! use ghastoolkit::codeql::CodeQL;
+//! ```no_run
+//! use ghastoolkit::codeql::{CodeQL, CodeQLDatabase, CodeQLDatabases};
 //!
+//! // Setup a default CodeQL CLI
 //! let codeql = CodeQL::default();
-//!
 //! println!("CodeQL :: {}", codeql);
+//!
+//! // Get all CodeQL databases from the default path
+//! let databases = CodeQLDatabases::default();
+//!
+//! for database in databases {
+//!    println!("Database :: {}", database);
+//! }
 //! ```
 /// This module contains the codeql struct and its methods
 pub mod cli;

@@ -19,7 +19,7 @@
 //!
 //! #[tokio::main]
 //! async fn main() {
-//!     // Initialize GitHub using environment variables or github.com
+//!     // Initialize GitHub using default environment variables or github.com
 //!     let github = GitHub::default();
 //!     println!("GitHub :: {}", github);
 //!
