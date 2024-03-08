@@ -31,12 +31,17 @@ impl Licenses {
         self.licenses.len()
     }
 
-    /// Parse a string into a list of licenses
+    /// Parse a string into a list of licenses.
+    /// It will split the string by "and" or ","
     pub fn parse(value: &str) -> Licenses {
         match value.to_lowercase().as_str() {
             value if value.contains("and") => Licenses::parse_sep(value, "and"),
             value if value.contains(',') => Licenses::parse_sep(value, ","),
-            _ => Licenses::new(),
+            _ => {
+                let mut licenses = Licenses::new();
+                licenses.push(License::from(value));
+                licenses
+            }
         }
     }
 
@@ -72,6 +77,18 @@ impl From<String> for Licenses {
 #[cfg(test)]
 mod tests {
     use crate::supplychain::{License, Licenses};
+
+    #[test]
+    fn test_single_license() {
+        let licenses = Licenses::from("Apache-2.0");
+
+        let correct = Licenses {
+            licenses: vec![License::Apache(String::from("2.0"))],
+        };
+
+        assert_eq!(licenses, correct);
+        assert_eq!(licenses.len(), 1);
+    }
 
     #[test]
     fn test_licenses_from_str() {
