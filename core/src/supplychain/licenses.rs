@@ -48,10 +48,10 @@ mod tests {
 
     #[test]
     fn test_licenses_from_str() {
-        let licenses = Licenses::from("Apache 2.0 and MIT");
+        let licenses = Licenses::from("Apache-2.0 AND MIT");
 
         let correct = Licenses {
-            licenses: vec![License::Apache2, License::MIT],
+            licenses: vec![License::Apache(String::from("2.0")), License::MIT],
         };
 
         assert_eq!(licenses, correct);
