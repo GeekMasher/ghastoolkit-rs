@@ -5,7 +5,14 @@ use std::{
 
 use log::debug;
 
-use crate::{codeql::database::handler::CodeQLDatabaseHandler, CodeQLDatabase, GHASError};
+use crate::{
+    codeql::{database::handler::CodeQLDatabaseHandler, CodeQLLanguage},
+    CodeQLDatabase, GHASError,
+};
+
+mod models;
+
+use models::ResolvedLanguages;
 
 /// CodeQL CLI Wrapper to make it easier to run CodeQL commands
 #[derive(Debug, Clone)]
@@ -16,6 +23,11 @@ pub struct CodeQL {
     threads: usize,
     /// Amount of RAM to use
     ram: Option<usize>,
+
+    /// The search path for the CodeQL CLI
+    search_path: Vec<String>,
+    /// Additional packs to use
+    additional_packs: Vec<String>,
 }
 
 impl CodeQL {
@@ -84,6 +96,56 @@ impl CodeQL {
             Err(e) => Err(e),
         }
     }
+
+    /// Get the languages supported by the CodeQL CLI
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ghastoolkit::CodeQL;
+    ///
+    /// let codeql = CodeQL::default();
+    ///
+    /// let languages = codeql.get_languages()
+    ///     .expect("Failed to get languages");
+    ///
+    /// for language in languages {
+    ///    println!("Language: {}", language.pretty());
+    ///    // Do something with the language
+    /// }
+    ///
+    pub fn get_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+        Ok(self
+            .get_all_languages()?
+            .into_iter()
+            .filter(|l| !l.is_secondary() || !l.is_none())
+            .collect())
+    }
+
+    /// Get the secondary languages supported by the CodeQL CLI
+    pub fn get_secondary_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+        Ok(self
+            .get_all_languages()?
+            .into_iter()
+            .filter(|l| l.is_secondary())
+            .collect())
+    }
+
+    /// Get all languages supported by the CodeQL CLI
+    pub fn get_all_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+        match self.run(vec!["resolve", "languages", "--format", "json"]) {
+            Ok(v) => {
+                let languages: ResolvedLanguages = serde_json::from_str(&v)?;
+                let mut result = Vec::new();
+                for (language, _) in languages {
+                    result.push(CodeQLLanguage::from(language));
+                }
+                result.sort();
+                Ok(result)
+            }
+            Err(e) => Err(e),
+        }
+    }
 }
 
 impl Display for CodeQL {
@@ -101,6 +163,8 @@ impl Default for CodeQL {
             path: CodeQL::find_codeql().unwrap_or_default(),
             threads: 0,
             ram: None,
+            search_path: Vec::new(),
+            additional_packs: Vec::new(),
         }
     }
 }
@@ -112,6 +176,9 @@ pub struct CodeQLBuilder {
 
     threads: usize,
     ram: usize,
+
+    search_path: Vec<String>,
+    additional_packs: Vec<String>,
 }
 
 impl CodeQLBuilder {
@@ -135,6 +202,18 @@ impl CodeQLBuilder {
         self
     }
 
+    /// Add additional packs to the CodeQL CLI
+    pub fn additional_packs(mut self, path: String) -> Self {
+        self.additional_packs.push(path);
+        self
+    }
+
+    /// Add a search path to the CodeQL CLI
+    pub fn search_path(mut self, path: String) -> Self {
+        self.search_path.push(path);
+        self
+    }
+
     /// Build the CodeQL instance
     pub fn build(&self) -> Result<CodeQL, GHASError> {
         let path: PathBuf = match self.path {
@@ -149,6 +228,8 @@ impl CodeQLBuilder {
             path,
             threads: self.threads,
             ram: self.ram.into(),
+            additional_packs: self.additional_packs.clone(),
+            search_path: self.search_path.clone(),
         })
     }
 }

@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 /// Languages supported by CodeQL.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum CodeQLLanguage {
     /// C Programming Language
     C,
@@ -25,6 +25,10 @@ pub enum CodeQLLanguage {
     Swift,
     /// Ruby Programming Language
     Ruby,
+    /// Secondary languages (properties, csv, yaml, html, etc)
+    Secondary(String),
+    /// Custom Language
+    Custom(String),
     /// No language
     #[default]
     None,
@@ -34,17 +38,23 @@ impl CodeQLLanguage {
     /// Get the pretty name of the language
     pub fn pretty(&self) -> &str {
         match self {
-            CodeQLLanguage::C => "C",
-            CodeQLLanguage::Cpp => "C++",
+            CodeQLLanguage::C | CodeQLLanguage::Cpp => "C / C++",
             CodeQLLanguage::CSharp => "C#",
             CodeQLLanguage::Go => "Go",
-            CodeQLLanguage::Java => "Java",
-            CodeQLLanguage::JavaScript => "JavaScript",
-            CodeQLLanguage::Kotlin => "Kotlin",
+            CodeQLLanguage::Java | CodeQLLanguage::Kotlin => "Java / Kotlin",
+            CodeQLLanguage::JavaScript | CodeQLLanguage::TypeScript => "JavaScript / TypeScript",
             CodeQLLanguage::Python => "Python",
-            CodeQLLanguage::TypeScript => "TypeScript",
             CodeQLLanguage::Swift => "Swift",
             CodeQLLanguage::Ruby => "Ruby",
+            CodeQLLanguage::Secondary(a) => match a.as_str() {
+                "properties" => "Properties",
+                "csv" => "CSV",
+                "yaml" => "YAML",
+                "xml" => "XML",
+                "html" => "HTML",
+                _ => a,
+            },
+            CodeQLLanguage::Custom(a) => a,
             CodeQLLanguage::None => "None",
         }
     }
@@ -60,8 +70,25 @@ impl CodeQLLanguage {
             CodeQLLanguage::Python => "python",
             CodeQLLanguage::Swift => "swift",
             CodeQLLanguage::Ruby => "ruby",
+            CodeQLLanguage::Secondary(a) => a,
+            CodeQLLanguage::Custom(a) => a,
             CodeQLLanguage::None => "none",
         }
+    }
+
+    /// Check if the language is a secondary language
+    pub fn is_secondary(&self) -> bool {
+        matches!(self, CodeQLLanguage::Secondary(_))
+    }
+
+    /// Check if the language is None
+    pub fn is_none(&self) -> bool {
+        matches!(self, CodeQLLanguage::None)
+    }
+
+    /// Check if the language is custom
+    pub fn is_custom(&self) -> bool {
+        matches!(self, CodeQLLanguage::Custom(_))
     }
 
     /// Get the list of supported languages
@@ -85,7 +112,7 @@ impl CodeQLLanguage {
 
 impl Display for CodeQLLanguage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.language())
+        write!(f, "{}", self.pretty())
     }
 }
 
@@ -103,6 +130,9 @@ impl From<&str> for CodeQLLanguage {
             "python" | "py" => CodeQLLanguage::Python,
             "swift" => CodeQLLanguage::Swift,
             "ruby" => CodeQLLanguage::Ruby,
+            "properties" | "csv" | "yaml" | "xml" | "html" => {
+                CodeQLLanguage::Secondary(s.to_string())
+            }
             _ => CodeQLLanguage::None,
         }
     }
