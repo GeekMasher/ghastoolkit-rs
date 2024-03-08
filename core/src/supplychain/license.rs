@@ -42,56 +42,29 @@ pub enum License {
 
 impl From<&str> for License {
     fn from(value: &str) -> Self {
-        // TODO(geekmasher): This could be improved
         match value.to_lowercase().as_str() {
-            value if value.contains("apache") => {
-                // apache-1.0 or apache-2.0
-                if let Some((_, version)) = value.split_once('-') {
-                    License::Apache(String::from(version.trim()))
-                } else {
-                    License::Apache(String::from(value))
-                }
-            }
+            // apache-1.0 or apache-2.0
+            value if value.contains("apache") => License::Apache(split_or_default(value, "-")),
             value if value.contains("mit") => License::MIT,
-            value if value.starts_with("gpl") => {
-                if let Some((_, version)) = value.split_once('-') {
-                    License::GPL(String::from(version.trim()))
-                } else {
-                    License::GPL(String::from(value))
-                }
-            }
-            value if value.starts_with("lgpl") => {
-                if let Some((_, version)) = value.split_once('-') {
-                    License::LGPL(String::from(version.trim()))
-                } else {
-                    License::LGPL(String::from(value))
-                }
-            }
-            value if value.starts_with("agpl") => {
-                if let Some((_, version)) = value.split_once('-') {
-                    License::AGPL(String::from(version.trim()))
-                } else {
-                    License::AGPL(String::from(value))
-                }
-            }
-            value if value.starts_with("mpl") => {
-                if let Some((_, version)) = value.split_once('-') {
-                    License::MPL(String::from(version.trim()))
-                } else {
-                    License::MPL(String::from(value))
-                }
-            }
-            value if value.starts_with("bsd") => {
-                if let Some((_, version)) = value.split_once('-') {
-                    License::BSD(String::from(version.trim()))
-                } else {
-                    License::BSD(String::from(value))
-                }
-            }
+            value if value.starts_with("gpl") => License::GPL(split_or_default(value, "-")),
+            value if value.starts_with("lgpl") => License::LGPL(split_or_default(value, "-")),
+            value if value.starts_with("agpl") => License::AGPL(split_or_default(value, "-")),
+            value if value.starts_with("mpl") => License::MPL(split_or_default(value, "-")),
+            value if value.starts_with("bsd") => License::BSD(split_or_default(value, "-")),
             "cc0" => License::CC0,
             "isc" => License::ISC,
             _ => License::Custom(String::from(value)),
         }
+    }
+}
+
+/// This helper function will split a string by a separator and return
+/// the second part or the default value (the same string).
+fn split_or_default(value: &str, sep: &str) -> String {
+    if let Some((_, version)) = value.split_once(sep) {
+        String::from(version.trim())
+    } else {
+        String::from(value)
     }
 }
 
@@ -121,5 +94,14 @@ mod tests {
 
         let license = License::from("MPL-3.0");
         assert_eq!(license, License::MPL(String::from("3.0")));
+    }
+
+    #[test]
+    fn test_split_or_default() {
+        let license = super::split_or_default("Apache-2.0", "-");
+        assert_eq!(license, "2.0");
+
+        let license = super::split_or_default("MIT", "-");
+        assert_eq!(license, "MIT");
     }
 }
