@@ -3,6 +3,18 @@ use serde::{Deserialize, Serialize};
 use crate::supplychain::License;
 
 /// List of Licenses for a dependency
+///
+/// # Example
+///
+/// ```rust
+/// use ghastoolkit::supplychain::Licenses;
+///
+/// // Parse a string into a list of licenses
+/// let licenses = Licenses::from("MIT, Apache-2.0");
+/// # assert_eq!(licenses.len(), 2);
+/// // Do some with the licenses
+///
+/// ```
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Licenses {
     licenses: Vec<License>,
