@@ -97,7 +97,9 @@ impl CodeQL {
         }
     }
 
-    /// Get the languages supported by the CodeQL CLI
+    /// Get the programming languages supported by the CodeQL CLI.
+    /// This function will return the primary languages supported by the CodeQL and exclude
+    /// any secondary languages (checkout `get_secondary_languages()`).
     ///
     /// # Example
     ///
@@ -138,7 +140,8 @@ impl CodeQL {
                 let languages: ResolvedLanguages = serde_json::from_str(&v)?;
                 let mut result = Vec::new();
                 for (language, _) in languages {
-                    result.push(CodeQLLanguage::from(language));
+                    // allow custom languages if they come from CodeQL CLI
+                    result.push(CodeQLLanguage::from((language.as_str(), true)));
                 }
                 result.sort();
                 Ok(result)

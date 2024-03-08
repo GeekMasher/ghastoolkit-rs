@@ -1,7 +1,7 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 /// Languages supported by CodeQL.
-#[derive(Debug, Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
+#[derive(Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum CodeQLLanguage {
     /// C Programming Language
     C,
@@ -116,8 +116,20 @@ impl Display for CodeQLLanguage {
     }
 }
 
-impl From<&str> for CodeQLLanguage {
-    fn from(s: &str) -> Self {
+impl Debug for CodeQLLanguage {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.is_secondary() {
+            write!(f, "Secondary('{}')", self.pretty())
+        } else if self.is_custom() {
+            write!(f, "Custom('{}')", self.pretty())
+        } else {
+            write!(f, "Primary('{}')", self.pretty())
+        }
+    }
+}
+
+impl From<(&str, bool)> for CodeQLLanguage {
+    fn from((s, custom): (&str, bool)) -> Self {
         match s.to_lowercase().as_str() {
             "c" => CodeQLLanguage::C,
             "cpp" | "c++" => CodeQLLanguage::Cpp,
@@ -133,8 +145,20 @@ impl From<&str> for CodeQLLanguage {
             "properties" | "csv" | "yaml" | "xml" | "html" => {
                 CodeQLLanguage::Secondary(s.to_string())
             }
-            _ => CodeQLLanguage::None,
+            _ => {
+                if custom {
+                    CodeQLLanguage::Custom(s.to_string())
+                } else {
+                    CodeQLLanguage::None
+                }
+            }
         }
+    }
+}
+
+impl From<&str> for CodeQLLanguage {
+    fn from(s: &str) -> Self {
+        CodeQLLanguage::from((s, false))
     }
 }
 
@@ -175,6 +199,9 @@ mod tests {
 
     #[test]
     fn test_pretty() {
+        let c = CodeQLLanguage::C;
+        assert_eq!(c.pretty(), "C / C++");
+
         let py = CodeQLLanguage::Python;
         assert_eq!(py.pretty(), "Python");
         assert_eq!(py.language(), "python");
@@ -187,8 +214,11 @@ mod tests {
     #[test]
     fn test_incorrect() {
         // RIP Rust
-        let lang = CodeQLLanguage::from("rust");
+        let lang = CodeQLLanguage::from("Rust");
         assert_eq!(lang, CodeQLLanguage::None);
+
+        let lang = CodeQLLanguage::Custom(String::from("Rust"));
+        assert_eq!(lang, CodeQLLanguage::Custom("Rust".to_string()));
 
         let lang = CodeQLLanguage::from(Some("rust".to_string()));
         assert_eq!(lang, CodeQLLanguage::None);
