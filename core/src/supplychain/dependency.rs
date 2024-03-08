@@ -16,7 +16,7 @@ use crate::{supplychain::licenses::Licenses, Repository};
 /// println!("{}", dependency);
 ///
 /// ```
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct Dependency {
     /// Manager / Type of the dependency
     pub manager: String,
@@ -31,7 +31,7 @@ pub struct Dependency {
     /// Qualifiers for the dependency
     qualifiers: HashMap<String, String>,
     /// SPDX licenses for the dependency
-    pub license: Licenses,
+    pub licenses: Licenses,
 
     repository: Option<Repository>,
     /// PURL
@@ -82,6 +82,14 @@ impl From<GenericPurl<String>> for Dependency {
             purl: Some(value),
             ..Default::default()
         }
+    }
+}
+
+impl From<(&str, &str)> for Dependency {
+    fn from(value: (&str, &str)) -> Self {
+        let mut dependency = Dependency::from(value.0);
+        dependency.licenses = Licenses::from(value.1);
+        dependency
     }
 }
 

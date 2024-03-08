@@ -31,6 +31,11 @@ impl Licenses {
         self.licenses.len()
     }
 
+    /// Check if the list contains a particular license
+    pub fn contains(&self, license: &License) -> bool {
+        self.licenses.contains(license)
+    }
+
     /// Parse a string into a list of licenses.
     /// It will split the string by "and" or ","
     pub fn parse(value: &str) -> Licenses {
@@ -54,11 +59,12 @@ impl Licenses {
     }
 }
 
-impl Iterator for Licenses {
+impl IntoIterator for Licenses {
     type Item = License;
+    type IntoIter = std::vec::IntoIter<License>;
 
-    fn next(&mut self) -> Option<Self::Item> {
-        self.licenses.pop()
+    fn into_iter(self) -> Self::IntoIter {
+        self.licenses.into_iter()
     }
 }
 
@@ -71,6 +77,16 @@ impl From<&str> for Licenses {
 impl From<String> for Licenses {
     fn from(value: String) -> Self {
         Licenses::parse(value.as_str())
+    }
+}
+
+impl From<Vec<&str>> for Licenses {
+    fn from(value: Vec<&str>) -> Self {
+        let mut licenses = Licenses::new();
+        for license in value {
+            licenses.push(License::from(license));
+        }
+        licenses
     }
 }
 
@@ -93,6 +109,18 @@ mod tests {
     #[test]
     fn test_licenses_from_str() {
         let licenses = Licenses::from("Apache-2.0 AND MIT");
+
+        let correct = Licenses {
+            licenses: vec![License::Apache(String::from("2.0")), License::MIT],
+        };
+
+        assert_eq!(licenses, correct);
+        assert_eq!(licenses.len(), 2);
+    }
+
+    #[test]
+    fn test_licenses_from_vec() {
+        let licenses = Licenses::from(vec!["Apache-2.0", "MIT"]);
 
         let correct = Licenses {
             licenses: vec![License::Apache(String::from("2.0")), License::MIT],
