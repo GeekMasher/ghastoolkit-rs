@@ -40,6 +40,8 @@ pub mod codescanning;
 pub mod errors;
 /// GitHub Octokit client for interacting with GitHub's API endpoints
 pub mod octokit;
+/// GHASToolkit supplychain module contains all the supplychain related functions and helpers
+pub mod supplychain;
 /// GHASToolkit utils module contains all the utility functions and helpers
 pub mod utils;
 
@@ -53,3 +55,6 @@ pub use octokit::repository::Repository;
 pub use codeql::CodeQL;
 pub use codeql::CodeQLDatabase;
 pub use codeql::CodeQLDatabases;
+
+// Supply Chain
+pub use supplychain::{Dependencies, Dependency};

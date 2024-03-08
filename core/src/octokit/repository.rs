@@ -7,7 +7,7 @@ use regex::Regex;
 use crate::errors::GHASError;
 
 /// GitHub Repository
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Repository {
     /// Owner of the repository (organization or user)
     owner: String,
