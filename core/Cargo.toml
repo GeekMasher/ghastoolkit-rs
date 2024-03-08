@@ -6,6 +6,7 @@ description = "GitHub Advanced Security Toolkit in Rust"
 keywords = ["github", "security", "ghas"]
 homepage = "https://github.com/GeekMasher/ghastoolkit-rs"
 repository = "https://github.com/GeekMasher/ghastoolkit-rs"
+documentation = "https://docs.rs/ghastoolkit/latest/ghastoolkit/"
 
 authors = ["GeekMasher"]
 license = "MIT"
