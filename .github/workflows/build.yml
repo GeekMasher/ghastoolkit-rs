@@ -15,21 +15,24 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: hecrj/setup-rust-action@v2
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy,rustfmt
         
       - name: Build
-        run: cargo build
+        run: |
+          cargo build
 
   lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: hecrj/setup-rust-action@v2
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          components: clippy
-      - run: cargo clippy --all-targets -- -D clippy::all
+          components: clippy,rustfmt
+
+      - run: |
+          cargo clippy --all-targets -- clippy::all
 
   test:
     runs-on: ubuntu-latest
@@ -40,23 +43,27 @@ jobs:
     
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: hecrj/setup-rust-action@v2
+      - uses: dtolnay/rust-toolchain@nightly
         with:
-          rust-version: ${{ matrix.rust }}
+          components: clippy,rustfmt
+          toolchain: ${{ matrix.rust }}
+
       - name: Run tests
-        run: cargo test
+        run: |
+          cargo test
 
   publish:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Rust
-        uses: hecrj/setup-rust-action@v2
+      - uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: clippy,rustfmt
       
       - name: Package
-        run: cargo package
+        run: |
+          cargo package
       
       - name: Publish
         env:
