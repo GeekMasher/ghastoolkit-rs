@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use console::style;
-use ghastoolkit::{GitHub, Repository};
+use ghastoolkit::{CodeQLDatabases, GHASError, GitHub, Repository};
 
 pub const VERSION_NUMBER: &str = env!("CARGO_PKG_VERSION");
 pub const AUTHOR: &str = env!("CARGO_PKG_AUTHORS");
@@ -52,10 +52,40 @@ pub struct Arguments {
 
 #[derive(Subcommand, Debug)]
 pub enum ArgumentCommands {
-    CodeScanning {
+    Codescanning {
         #[clap(short, long, help = "Audit Mode", default_value_t = false)]
         audit: bool,
     },
+
+    Codeql {
+        #[clap(long, env, help = "Path to CodeQL")]
+        codeql_path: Option<String>,
+
+        #[clap(long, env, help = "CodeQL Database / Databases Root Path", default_value_t = default_codeql_path())]
+        codeql_databases: String,
+
+        #[clap(short, long, help = "List CodeQL Databases")]
+        list: bool,
+
+        #[clap(short, long, help = "Repository mode")]
+        repo: bool,
+
+        #[clap(long, help = "CodeQL Language")]
+        language: Option<String>,
+
+        #[clap(long, help = "Number of Threads / CPU Cores to use")]
+        threads: Option<usize>,
+
+        #[clap(long, help = "Amount of Memory / RAM to use in MB")]
+        ram: Option<usize>,
+    },
+}
+
+fn default_codeql_path() -> String {
+    CodeQLDatabases::default_path()
+        .to_str()
+        .expect("Failed to convert PathBuf to String")
+        .to_string()
 }
 
 impl Arguments {
@@ -68,12 +98,11 @@ impl Arguments {
             .expect("Failed to build GitHub client")
     }
 
-    pub fn repository(&self) -> Repository {
+    pub fn repository(&self) -> Result<Repository, GHASError> {
         Repository::init()
             .repo(self.github_repository.clone().unwrap_or_default().as_str())
             .reference(self.github_reference.clone().unwrap_or_default().as_str())
             .build()
-            .expect("Failed to build Repository")
     }
 }
 
