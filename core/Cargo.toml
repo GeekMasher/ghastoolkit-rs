@@ -33,6 +33,11 @@ serde_yaml = "0.9.32"
 thiserror = "1.0.57"
 url = { version = "2.5.0", features = ["serde"] }
 walkdir = "2.5.0"
+time = "0.3.36"
 
 [dev-dependencies]
 tokio = { version = "1.36.0", features = ["macros", "rt-multi-thread", "time"] }
+
+[[example]]
+name = "codeql-packs"
+path = "../examples/codeql-packs/src/main.rs"

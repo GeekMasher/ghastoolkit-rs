@@ -52,6 +52,7 @@ pub use octokit::github::GitHub;
 pub use octokit::repository::Repository;
 
 // CodeQL
+pub use codeql::packs::{CodeQLPack, CodeQLPackType, CodeQLPacks};
 pub use codeql::CodeQL;
 pub use codeql::CodeQLDatabase;
 pub use codeql::CodeQLDatabases;
