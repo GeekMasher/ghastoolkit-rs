@@ -18,7 +18,7 @@ impl CodeQLPacks {
     }
     /// Sort the packs by type (Library, Queries, Models, Testing)
     pub fn sort(&mut self) {
-        self.packs.sort_by(|a, b| a.get_type().cmp(&b.get_type()));
+        self.packs.sort_by(|a, b| a.pack_type().cmp(&b.pack_type()));
     }
 
     /// Load CodeQL Packs from a directory. It will recursively search for `qlpack.yml` files.

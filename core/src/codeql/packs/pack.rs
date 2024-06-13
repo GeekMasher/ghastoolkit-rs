@@ -33,22 +33,22 @@ impl CodeQLPack {
         }
     }
     /// Get the pack name
-    pub fn get_name(&self) -> String {
+    pub fn name(&self) -> String {
         self.pack.name.clone()
     }
     /// Get the root path of the CodeQL Pack
-    pub fn get_path(&self) -> PathBuf {
+    pub fn path(&self) -> PathBuf {
         self.path.clone()
     }
     /// Get the pack version
-    pub fn get_version(&self) -> Option<String> {
+    pub fn version(&self) -> Option<String> {
         self.pack.version.clone()
     }
     /// Get the list of dependencies for the pack.
     ///
     /// If the Pack Lock is available, it will return the dependencies from the lock file.
     /// Otherwise, it will return the dependencies from the pack file.
-    pub fn get_dependencies(&self) -> HashMap<String, String> {
+    pub fn dependencies(&self) -> HashMap<String, String> {
         if let Some(pack_lock) = &self.pack_lock {
             pack_lock
                 .dependencies
@@ -60,7 +60,7 @@ impl CodeQLPack {
         }
     }
     /// Get the pack type
-    pub fn get_type(&self) -> CodeQLPackType {
+    pub fn pack_type(&self) -> CodeQLPackType {
         self.pack_type.clone()
     }
 
