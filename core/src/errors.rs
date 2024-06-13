@@ -16,6 +16,10 @@ pub enum GHASError {
     #[error("CodeQLDatabaseError: {0}")]
     CodeQLDatabaseError(String),
 
+    /// CodeQL Pack Error
+    #[error("CodeQLPackError: {0}")]
+    CodeQLPackError(String),
+
     /// Octocrab Error (octocrab::Error)
     #[error("OctocrabError: {0}")]
     OctocrabError(#[from] OctocrabError),
