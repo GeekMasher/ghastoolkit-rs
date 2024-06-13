@@ -1,0 +1,8 @@
+name: geekmasher/codeql-java
+library: false
+version: 1.0.0
+
+dependencies:
+  codeql/java-all: "^1.0.0"
+  githubsecuritylab/codeql-java-libs: "^0.0.1"
+

@@ -9,6 +9,10 @@ fn main() -> Result<()> {
     println!("Pack Path :: {}", pack_lib.get_path().display());
 
     assert_eq!(pack_lib.get_type(), CodeQLPackType::Library);
+    assert_eq!(
+        pack_lib.get_name(),
+        String::from("geekmasher/codeql-java-lib")
+    );
 
     // Load my Java CodeQL Pack Queries
     let pack_src = CodeQLPack::new("./java/src");
@@ -17,6 +21,7 @@ fn main() -> Result<()> {
     println!("Pack Path :: {}", pack_src.get_path().display());
 
     assert_eq!(pack_src.get_type(), CodeQLPackType::Queries);
+    assert_eq!(pack_lib.get_name(), String::from("geekmasher/codeql-java"));
 
     // Load all CodeQL Packs from the current directory
     let mut packs = CodeQLPacks::load("./")?;
