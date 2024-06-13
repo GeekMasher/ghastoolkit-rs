@@ -44,7 +44,10 @@ impl CodeQLPack {
     pub fn get_version(&self) -> Option<String> {
         self.pack.version.clone()
     }
-    /// Get the list of dependencies
+    /// Get the list of dependencies for the pack.
+    ///
+    /// If the Pack Lock is available, it will return the dependencies from the lock file.
+    /// Otherwise, it will return the dependencies from the pack file.
     pub fn get_dependencies(&self) -> HashMap<String, String> {
         if let Some(pack_lock) = &self.pack_lock {
             pack_lock
@@ -99,6 +102,7 @@ impl CodeQLPack {
         })
     }
 
+    /// Based on the loaded YAML, determine the pack type
     fn get_pack_type(pack_yaml: &PackYaml) -> CodeQLPackType {
         if let Some(library) = pack_yaml.library {
             if library {
