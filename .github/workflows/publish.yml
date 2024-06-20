@@ -21,7 +21,7 @@ jobs:
         run: |
           set -e
 
-          CARGO_LOCATION="./Cargo.toml"
+          CARGO_LOCATION="./core/Cargo.toml"
           CRATE_NAME="ghastoolkit"
           # TODO: Auto detect name
           current_version=$(grep -oP '^version = "(.*)"$' $CARGO_LOCATION | cut -d '"' -f 2)
