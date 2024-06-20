@@ -97,7 +97,7 @@ async fn main() -> Result<()> {
             info!("CodeQL :: {}", codeql);
             info!(
                 "CodeQL Languages Loaded :: {}",
-                codeql.get_languages()?.len()
+                codeql.get_languages().await?.len()
             );
 
             if list {
@@ -141,7 +141,7 @@ async fn main() -> Result<()> {
                 info!("Database :: {}", database);
                 info!("Creating database :: {}", database.path().display());
 
-                codeql.database(&database).overwrite().create()?;
+                codeql.database(&database).overwrite().create().await?;
 
                 // Reload the database after creation
                 database.reload()?;
@@ -149,7 +149,11 @@ async fn main() -> Result<()> {
                 let queries = CodeQLQueries::language_default(language.language());
 
                 info!("Analyzing database :: {}", database);
-                let results = codeql.database(&database).queries(queries).analyze()?;
+                let results = codeql
+                    .database(&database)
+                    .queries(queries)
+                    .analyze()
+                    .await?;
 
                 info!("Results :: {:?}", results.get_results().len());
                 for result in results.get_results() {

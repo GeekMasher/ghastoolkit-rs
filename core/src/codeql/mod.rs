@@ -39,6 +39,8 @@
 //! ```no_run
 //! use ghastoolkit::codeql::{CodeQL, CodeQLDatabase};
 //!
+//! # #[tokio::main]
+//! # async fn main() {
 //! let codeql = CodeQL::default();
 //!
 //! // Create a new CodeQL database
@@ -55,11 +57,14 @@
 //! codeql.database(&database)
 //!     .overwrite()
 //!     .create()
+//!     .await
 //!     .expect("Failed to create CodeQL database");
 //!
 //! let results = codeql.database(&database)
 //!     .analyze()
+//!     .await
 //!     .expect("Failed to analyze CodeQL database");
+//! # }
 //!```
 
 /// This module contains the codeql struct and its methods

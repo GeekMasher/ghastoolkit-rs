@@ -64,6 +64,82 @@ impl CodeQLPack {
         self.pack_type.clone()
     }
 
+    /// Download a CodeQL Pack using its name (namespace/name[@version])
+    ///
+    /// ```bash
+    /// codeql pack download <name>
+    /// ```
+    #[cfg(feature = "async")]
+    pub async fn download(
+        codeql: &crate::CodeQL,
+        name: impl Into<String>,
+    ) -> Result<Self, GHASError> {
+        let name = name.into();
+        if let Some((namespace, mut packname)) = &name.split_once('/') {
+            let version: Option<String> = if let Some((pname, version)) = packname.split_once('@') {
+                packname = pname;
+                Some(version.to_string())
+            } else {
+                None
+            };
+
+            codeql.run(vec!["pack", "download", name.as_str()]).await?;
+
+            // CodeQL installs the pack in `~/.codeql/packages/{namespace}/{name}/{version}`
+            let path = PathBuf::from("~/.codeql/packages")
+                .join(namespace)
+                .join(packname)
+                .join(version.unwrap_or_default());
+            Ok(Self::new(path))
+        } else {
+            Err(GHASError::CodeQLPackError(format!(
+                "Invalid Pack Name: {}",
+                name
+            )))
+        }
+    }
+
+    /// Install the CodeQL Pack Dependencies
+    ///
+    /// ```bash
+    /// codeql pack install <path>
+    /// ```
+    #[cfg(feature = "async")]
+    pub async fn install(&self, codeql: &crate::CodeQL) -> Result<(), GHASError> {
+        codeql
+            .run(vec!["pack", "install", self.path().to_str().unwrap()])
+            .await
+            .map(|_| ())
+    }
+
+    /// Upgrade CodeQL Pack Dependencies
+    #[cfg(feature = "async")]
+    pub async fn upgrade(&self, codeql: &crate::CodeQL) -> Result<(), GHASError> {
+        codeql
+            .run(vec!["pack", "upgrade", self.path().to_str().unwrap()])
+            .await
+            .map(|_| ())
+    }
+
+    /// Publish the CodeQL Pack
+    ///
+    /// ```bash
+    /// codeql pack publish <path>
+    /// ```
+    #[cfg(feature = "async")]
+    pub async fn publish(
+        &self,
+        codeql: &crate::CodeQL,
+        token: impl Into<String>,
+    ) -> Result<(), GHASError> {
+        Ok(tokio::process::Command::new(codeql.path())
+            .env("CODEQL_REGISTRIES_AUTH", token.into())
+            .args(vec!["pack", "publish", self.path().to_str().unwrap()])
+            .output()
+            .await
+            .map(|_| ())?)
+    }
+
     /// Load a QLPack from a path (root directory or qlpack.yml file)
     pub fn load(path: impl Into<PathBuf>) -> Result<Self, GHASError> {
         // Path is the directory
@@ -105,10 +181,10 @@ impl CodeQLPack {
     /// Based on the loaded YAML, determine the pack type
     fn get_pack_type(pack_yaml: &PackYaml) -> CodeQLPackType {
         if let Some(library) = pack_yaml.library {
-            if library {
-                return CodeQLPackType::Library;
-            } else if pack_yaml.data_extensions.is_some() {
+            if library && pack_yaml.data_extensions.is_some() {
                 return CodeQLPackType::Models;
+            } else if library {
+                return CodeQLPackType::Library;
             }
         } else if pack_yaml.tests.is_some() {
             return CodeQLPackType::Testing;
@@ -117,6 +193,16 @@ impl CodeQLPack {
         }
 
         CodeQLPackType::Queries
+    }
+}
+
+impl Display for CodeQLPack {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(version) = self.version() {
+            write!(f, "{} ({}) - v{}", self.name(), self.pack_type(), version)
+        } else {
+            write!(f, "{} ({})", self.name(), self.pack_type(),)
+        }
     }
 }
 

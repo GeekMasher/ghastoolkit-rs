@@ -65,7 +65,7 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
     }
 
     /// Create a new CodeQL Database using the provided database
-    pub fn create(&mut self) -> Result<(), GHASError> {
+    pub async fn create(&mut self) -> Result<(), GHASError> {
         let args = self.create_cmd()?;
 
         // Create path
@@ -73,7 +73,7 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
             std::fs::create_dir_all(self.database.path())?;
         }
 
-        self.codeql.run(args)?;
+        self.codeql.run(args).await?;
 
         Ok(())
     }
@@ -133,10 +133,10 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         path
     }
     /// Analyze the database
-    pub fn analyze(&self) -> Result<Sarif, GHASError> {
+    pub async fn analyze(&self) -> Result<Sarif, GHASError> {
         let args = self.analyze_cmd()?;
 
-        self.codeql.run(args)?;
+        self.codeql.run(args).await?;
         Sarif::try_from(self.output.clone())
     }
 
