@@ -1,6 +1,6 @@
 [package]
 name = "ghastoolkit"
-version = "0.3.1"
+version = "0.3.2"
 
 description = "GitHub Advanced Security Toolkit in Rust"
 keywords = ["github", "security", "ghas"]
