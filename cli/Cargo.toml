@@ -1,6 +1,6 @@
 [package]
 name = "ghastoolkit-cli"
-version = "0.3.2"
+version = "0.4.0"
 
 description = "GitHub Advanced Security Toolkit CLIt"
 keywords = ["github", "security", "ghas"]
