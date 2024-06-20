@@ -1,6 +1,6 @@
 [package]
 name = "ghastoolkit-cli"
-version = "0.3.1"
+version = "0.4.0"
 
 description = "GitHub Advanced Security Toolkit CLIt"
 keywords = ["github", "security", "ghas"]
@@ -27,4 +27,4 @@ env_logger = "0.11.2"
 log = "0.4.20"
 tokio = { version = "1.36.0", features = ["full"] }
 
-ghastoolkit = { path = "../core", version = "^0.3" }
+ghastoolkit = { path = "../core", version = "^0.4" }
