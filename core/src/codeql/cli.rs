@@ -23,7 +23,6 @@ pub struct CodeQL {
     threads: usize,
     /// Amount of RAM to use
     ram: Option<usize>,
-
     /// The search path for the CodeQL CLI
     search_path: Vec<String>,
     /// Additional packs to use
@@ -34,6 +33,11 @@ impl CodeQL {
     /// Create a new CodeQL instance
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Get the CodeQL CLI path
+    pub fn path(&self) -> &PathBuf {
+        &self.path
     }
 
     /// Initialize a new CodeQL Builder instance
@@ -65,13 +69,13 @@ impl CodeQL {
         None
     }
 
-    /// Run a CodeQL command
-    pub fn run(&self, args: Vec<&str>) -> Result<String, GHASError> {
+    /// Run a CodeQL command asynchronously
+    pub async fn run(&self, args: Vec<&str>) -> Result<String, GHASError> {
         debug!("{:?}", args);
-        let mut cmd = std::process::Command::new(&self.path);
+        let mut cmd = tokio::process::Command::new(&self.path);
         cmd.args(args);
 
-        let output = cmd.output()?;
+        let output = cmd.output().await?;
 
         if output.status.success() {
             debug!("CodeQL Command Success: {:?}", output.status.to_string());
@@ -91,10 +95,11 @@ impl CodeQL {
 
     /// Get the version of the CodeQL CLI
     pub fn version(&self) -> Result<String, GHASError> {
-        match self.run(vec!["version", "--format", "terse"]) {
-            Ok(v) => Ok(v.trim().to_string()),
-            Err(e) => Err(e),
-        }
+        std::process::Command::new(&self.path)
+            .args(&["version", "--format", "terse"])
+            .output()
+            .map(|v| String::from_utf8_lossy(&v.stdout).to_string())
+            .map_err(|e| GHASError::CodeQLError(e.to_string()))
     }
 
     /// Get the programming languages supported by the CodeQL CLI.
@@ -106,9 +111,12 @@ impl CodeQL {
     /// ```no_run
     /// use ghastoolkit::CodeQL;
     ///
+    /// # #[tokio::main]
+    /// # async fn main() {
     /// let codeql = CodeQL::default();
     ///
     /// let languages = codeql.get_languages()
+    ///     .await
     ///     .expect("Failed to get languages");
     ///
     /// for language in languages {
@@ -116,26 +124,33 @@ impl CodeQL {
     ///    // Do something with the language
     /// }
     ///
-    pub fn get_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+    /// # }
+    /// ```
+    pub async fn get_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
         Ok(self
-            .get_all_languages()?
+            .get_all_languages()
+            .await?
             .into_iter()
             .filter(|l| !l.is_secondary() || !l.is_none())
             .collect())
     }
 
     /// Get the secondary languages supported by the CodeQL CLI
-    pub fn get_secondary_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+    pub async fn get_secondary_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
         Ok(self
-            .get_all_languages()?
+            .get_all_languages()
+            .await?
             .into_iter()
             .filter(|l| l.is_secondary())
             .collect())
     }
 
     /// Get all languages supported by the CodeQL CLI
-    pub fn get_all_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
-        match self.run(vec!["resolve", "languages", "--format", "json"]) {
+    pub async fn get_all_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+        match self
+            .run(vec!["resolve", "languages", "--format", "json"])
+            .await
+        {
             Ok(v) => {
                 let languages: ResolvedLanguages = serde_json::from_str(&v)?;
                 let mut result = Vec::new();
@@ -153,6 +168,7 @@ impl CodeQL {
 
 impl Display for CodeQL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Run the version command synchronously
         match self.version() {
             Ok(v) => write!(f, "CodeQL('{}', '{}')", self.path.display(), v),
             Err(_) => write!(f, "CodeQL('{}')", self.path.display()),
