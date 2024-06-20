@@ -108,7 +108,7 @@ impl Arguments {
 
 pub fn init() -> Arguments {
     // Load .env file if it exists
-    dotenv::dotenv().ok();
+    dotenvy::dotenv().ok();
 
     let arguments = Arguments::parse();
 
