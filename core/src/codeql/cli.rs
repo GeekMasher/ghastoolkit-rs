@@ -70,6 +70,7 @@ impl CodeQL {
     }
 
     /// Run a CodeQL command asynchronously
+    #[cfg(feature = "async")]
     pub async fn run(&self, args: Vec<&str>) -> Result<String, GHASError> {
         debug!("{:?}", args);
         let mut cmd = tokio::process::Command::new(&self.path);
