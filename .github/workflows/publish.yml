@@ -53,8 +53,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: "Setup - Rust Toolchain"
-        uses: dtolnay/rust-toolchain@nightly
+        uses: dtolnay/rust-toolchain@21dc36fb71dd22e3317045c0c31a3f4249868b17
         with:
+          toolchain: stable
           components: clippy
 
       - name: "Build / Validate"
