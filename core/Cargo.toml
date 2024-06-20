@@ -41,10 +41,10 @@ time = "0.3.36"
 
 # Async
 async-trait = { version = "0.1.77", optional = true }
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "time"], optional = true}
+tokio = { version = "1.38.0", features = ["process", "macros", "rt-multi-thread", "time"], optional = true}
 
 [dev-dependencies]
-tokio = { version = "1.38.0", features = ["macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.38.0", features = ["process", "macros", "rt-multi-thread", "time"] }
 
 [[example]]
 name = "codeql-packs"
