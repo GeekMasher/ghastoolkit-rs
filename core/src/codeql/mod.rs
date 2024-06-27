@@ -73,6 +73,7 @@ pub mod cli;
 pub mod database;
 /// This module contains the codeql databases struct and its methods
 pub mod databases;
+pub mod extractors;
 /// This module contains the codeql language struct and its methods
 pub mod languages;
 pub mod packs;
@@ -80,4 +81,5 @@ pub mod packs;
 pub use cli::CodeQL;
 pub use database::CodeQLDatabase;
 pub use databases::CodeQLDatabases;
+pub use extractors::CodeQLExtractor;
 pub use languages::CodeQLLanguage;
