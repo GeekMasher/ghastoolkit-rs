@@ -36,6 +36,13 @@ impl CodeQLPacks {
 
         for entry in walkdir::WalkDir::new(&path) {
             let entry = entry?;
+
+            // Skip any subdirectories named `.codeql`
+            // TODO: Is this the best way to handle this?
+            if entry.path().to_str().unwrap().contains(".codeql") {
+                continue;
+            }
+
             if entry.file_name() == "qlpack.yml" {
                 let pack = CodeQLPack::new(entry.path());
                 packs.push(pack);
