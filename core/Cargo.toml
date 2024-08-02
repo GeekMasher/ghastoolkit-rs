@@ -1,50 +1,52 @@
 [package]
 name = "ghastoolkit"
-version = "0.4.3"
 
-description = "GitHub Advanced Security Toolkit in Rust"
-keywords = ["github", "security", "ghas"]
-homepage = "https://github.com/GeekMasher/ghastoolkit-rs"
-repository = "https://github.com/GeekMasher/ghastoolkit-rs"
-documentation = "https://docs.rs/ghastoolkit/latest/ghastoolkit/"
+description.workspace = true
+version.workspace = true
+documentation.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
-authors = ["GeekMasher"]
-license = "MIT"
+categories.workspace = true
+keywords.workspace = true
+authors.workspace = true
 
-readme = "../README.md"
-
-rust-version = "1.70"
-edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
 default = ["async"]
 
 async = ["dep:async-trait", "dep:tokio"]
+toolcache = ["async", "dep:ghactions"]
 
 [dependencies]
 anyhow = "1"
-chrono = { version = "0.4", features = ["serde"] }
-git2 = "0.19"
-glob = "0.3"
-log = "0.4"
-octocrab = "0.38"
-purl = { version = "0.1", features = ["serde"] }
-regex = "1.10"
+thiserror = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"
-thiserror = "1"
+log = "0.4"
+chrono = { version = "0.4", features = ["serde"] }
+git2 = "0.19"
+glob = "0.3"
+octocrab = "0.39"
+purl = { version = "0.1", features = ["serde"] }
+regex = "1.10"
 url = { version = "2.5", features = ["serde"] }
 walkdir = "2.5"
 time = "0.3.36"
 
+# For CodeQL in ToolCache
+ghactions = { version = "^0.11", features = ["toolcache"], optional = true }
+
 # Async
 async-trait = { version = "0.1", optional = true }
-tokio = { version = "^1.38", features = ["process", "macros", "rt-multi-thread", "time"], optional = true}
+tokio = { version = "^1.39", features = ["process", "macros", "rt-multi-thread", "time"], optional = true}
 
 [dev-dependencies]
-tokio = { version = "^1.38", features = ["process", "macros", "rt-multi-thread", "time"] }
+tokio = { version = "1.39", features = ["process", "macros", "rt-multi-thread", "time"] }
 
 [[example]]
 name = "codeql-packs"

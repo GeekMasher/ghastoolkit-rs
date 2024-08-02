@@ -1,23 +1,23 @@
 [package]
 name = "ghastoolkit-cli"
-version = "0.4.3"
-
 description = "GitHub Advanced Security Toolkit CLIt"
-keywords = ["github", "security", "ghas"]
-homepage = "https://github.com/GeekMasher/ghastoolkit-rs"
-repository = "https://github.com/GeekMasher/ghastoolkit-rs"
 
-authors = ["GeekMasher"]
-license = "MIT"
+version.workspace = true
+documentation.workspace = true
+repository.workspace = true
+license.workspace = true
+edition.workspace = true
+rust-version.workspace = true
 
-readme = "../README.md"
-
-rust-version = "1.70"
-edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+categories.workspace = true
+keywords.workspace = true
+authors.workspace = true
 
 [dependencies]
+ghastoolkit = { path = "../core", version = "^0.5" }
+
+tokio = { version = "1.39", features = ["full"] }
+
 anyhow = "1"
 clap = { version = "4.5", features = ["derive", "env"] }
 console = "0.15"
@@ -25,6 +25,4 @@ dialoguer = { version = "0.11", features = ["fuzzy-select"] }
 dotenvy = { version = "0.15", features = ["clap"] }
 env_logger = "0.11"
 log = "0.4"
-tokio = { version = "1.38", features = ["full"] }
 
-ghastoolkit = { path = "../core", version = "^0.4" }
