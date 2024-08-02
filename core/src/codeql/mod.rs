@@ -7,8 +7,10 @@
 //! ```no_run
 //! use ghastoolkit::codeql::{CodeQL, CodeQLDatabase, CodeQLDatabases};
 //!
+//! # #[tokio::main]
+//! # async fn main() {
 //! // Setup a default CodeQL CLI
-//! let codeql = CodeQL::default();
+//! let codeql = CodeQL::new().await;
 //! println!("CodeQL :: {}", codeql);
 //!
 //! // Get all CodeQL databases from the default path
@@ -17,6 +19,7 @@
 //! for database in databases {
 //!    println!("Database :: {}", database);
 //! }
+//! # }
 //! ```
 //!
 //! You can also use the builder pattern to create a new CodeQL CLI instance:
@@ -24,12 +27,16 @@
 //! ```rust
 //! use ghastoolkit::codeql::CodeQL;
 //!
+//! # #[tokio::main]
+//! # async fn main() {
 //! let codeql = CodeQL::init()
 //!     .path(String::from("/path/to/codeql"))
 //!     .threads(4)
 //!     .ram(8000)
 //!     .build()
+//!     .await
 //!     .expect("Failed to create CodeQL instance");
+//! # }
 //! ```
 //!
 //! ## CodeQL Database
