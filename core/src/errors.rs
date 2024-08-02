@@ -24,6 +24,11 @@ pub enum GHASError {
     #[error("OctocrabError: {0}")]
     OctocrabError(#[from] OctocrabError),
 
+    /// GHActions Error
+    #[cfg(feature = "toolcache")]
+    #[error("GHActionsError: {0}")]
+    GHActionsError(#[from] ghactions::ActionsError),
+
     /// Regex Error (regex::Error)
     #[error("RegexError: {0}")]
     RegexError(#[from] RegexError),
