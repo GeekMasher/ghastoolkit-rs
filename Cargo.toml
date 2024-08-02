@@ -2,3 +2,21 @@
 resolver = "2"
 members = ["core", "cli"]
 
+[workspace.package]
+version = "0.5.0"
+license = "MIT"
+description = "GitHub Advanced Security Toolkit in Rust"
+keywords = ["github", "security", "ghas"]
+categories = ["development-tools"]
+
+homepage = "https://github.com/GeekMasher/ghastoolkit-rs"
+repository = "https://github.com/GeekMasher/ghastoolkit-rs"
+documentation = "https://docs.rs/ghastoolkit/latest/ghastoolkit/"
+
+authors = ["GeekMasher"]
+
+edition = "2021"
+rust-version = "1.70"
+
+readme = "README.md"
+
