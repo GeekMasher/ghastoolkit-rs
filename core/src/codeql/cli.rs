@@ -68,6 +68,18 @@ impl CodeQL {
         if let Some(p) = CodeQL::find_codeql_path() {
             return Some(p);
         }
+        // Root CodeQL Paths
+        if let Some(e) = std::env::var_os("CODEQL_PATH") {
+            let p = PathBuf::from(e).join("codeql");
+            if p.exists() && p.is_file() {
+                return Some(p);
+            }
+        } else if let Some(e) = std::env::var_os("CODEQL_BINARY") {
+            let p = PathBuf::from(e);
+            if p.exists() && p.is_file() {
+                return Some(p);
+            }
+        }
 
         #[cfg(feature = "toolcache")]
         {
