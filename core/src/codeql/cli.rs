@@ -17,6 +17,8 @@ use models::ResolvedLanguages;
 /// CodeQL CLI Wrapper to make it easier to run CodeQL commands
 #[derive(Debug, Clone)]
 pub struct CodeQL {
+    /// CodeQL CLI Version
+    version: Option<String>,
     /// Path to the CodeQL CLI
     path: PathBuf,
     /// Number of threads to use
@@ -31,8 +33,24 @@ pub struct CodeQL {
 
 impl CodeQL {
     /// Create a new CodeQL instance
+    #[cfg(not(feature = "async"))]
     pub fn new() -> Self {
-        Self::default()
+        CodeQL::default()
+    }
+
+    /// Create a new CodeQL instance
+    #[cfg(feature = "async")]
+    pub async fn new() -> Self {
+        let path = CodeQL::find_codeql().await.unwrap_or_default();
+
+        CodeQL {
+            version: CodeQL::get_version(&path).await.ok(),
+            path,
+            threads: 0,
+            ram: None,
+            search_path: Vec::new(),
+            additional_packs: Vec::new(),
+        }
     }
 
     /// Get the CodeQL CLI path
@@ -45,12 +63,18 @@ impl CodeQL {
         CodeQLBuilder::default()
     }
 
-    /// Find CodeQL CLI on the system
-    pub fn find_codeql() -> Option<PathBuf> {
+    /// Find CodeQL CLI on the system (asynchronous)
+    pub async fn find_codeql() -> Option<PathBuf> {
         if let Some(p) = CodeQL::find_codeql_path() {
             return Some(p);
         }
-        // TODO(geekmasher): Add support for GitHub Actions Tool Cache
+
+        #[cfg(feature = "toolcache")]
+        {
+            if let Some(t) = CodeQL::find_codeql_toolcache().await {
+                return Some(t);
+            }
+        }
 
         None
     }
@@ -69,10 +93,19 @@ impl CodeQL {
         None
     }
 
+    #[cfg(feature = "toolcache")]
+    async fn find_codeql_toolcache() -> Option<PathBuf> {
+        let toolcache = ghactions::ToolCache::new();
+        if let Ok(tool) = toolcache.find("CodeQL", "latest").await {
+            return Some(tool.path().clone());
+        }
+        None
+    }
+
     /// Run a CodeQL command asynchronously
-    #[cfg(feature = "async")]
     pub async fn run(&self, args: Vec<&str>) -> Result<String, GHASError> {
-        debug!("{:?}", args);
+        debug!("CodeQL.run args :: {:?}", args);
+
         let mut cmd = tokio::process::Command::new(&self.path);
         cmd.args(args);
 
@@ -80,7 +113,10 @@ impl CodeQL {
 
         if output.status.success() {
             debug!("CodeQL Command Success: {:?}", output.status.to_string());
-            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+            Ok(String::from_utf8_lossy(&output.stdout)
+                .to_string()
+                .trim()
+                .to_string())
         } else {
             Err(GHASError::CodeQLError(
                 String::from_utf8_lossy(&output.stderr).to_string(),
@@ -94,13 +130,29 @@ impl CodeQL {
         CodeQLDatabaseHandler::new(db, self)
     }
 
+    /// Get the version of the loaded CodeQL CLI
+    pub fn version(&self) -> Option<String> {
+        self.version.clone()
+    }
+
     /// Get the version of the CodeQL CLI
-    pub fn version(&self) -> Result<String, GHASError> {
-        std::process::Command::new(&self.path)
+    pub async fn get_version(path: &Path) -> Result<String, GHASError> {
+        let output = tokio::process::Command::new(path)
             .args(&["version", "--format", "terse"])
             .output()
-            .map(|v| String::from_utf8_lossy(&v.stdout).to_string())
-            .map_err(|e| GHASError::CodeQLError(e.to_string()))
+            .await?;
+
+        if output.status.success() {
+            debug!("CodeQL Command Success: {:?}", output.status.to_string());
+            Ok(String::from_utf8_lossy(&output.stdout)
+                .to_string()
+                .trim()
+                .to_string())
+        } else {
+            Err(GHASError::CodeQLError(
+                String::from_utf8_lossy(&output.stderr).to_string(),
+            ))
+        }
     }
 
     /// Get the programming languages supported by the CodeQL CLI.
@@ -169,10 +221,10 @@ impl CodeQL {
 
 impl Display for CodeQL {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        // Run the version command synchronously
-        match self.version() {
-            Ok(v) => write!(f, "CodeQL('{}', '{}')", self.path.display(), v),
-            Err(_) => write!(f, "CodeQL('{}')", self.path.display()),
+        if let Some(version) = &self.version {
+            write!(f, "CodeQL('{}', '{}')", self.path.display(), version)
+        } else {
+            write!(f, "CodeQL('{}')", self.path.display())
         }
     }
 }
@@ -180,7 +232,8 @@ impl Display for CodeQL {
 impl Default for CodeQL {
     fn default() -> Self {
         CodeQL {
-            path: CodeQL::find_codeql().unwrap_or_default(),
+            version: None,
+            path: PathBuf::new(),
             threads: 0,
             ram: None,
             search_path: Vec::new(),
@@ -235,16 +288,19 @@ impl CodeQLBuilder {
     }
 
     /// Build the CodeQL instance
-    pub fn build(&self) -> Result<CodeQL, GHASError> {
+    pub async fn build(&self) -> Result<CodeQL, GHASError> {
         let path: PathBuf = match self.path {
             Some(ref p) => PathBuf::from(p),
-            None => match CodeQL::find_codeql() {
+            None => match CodeQL::find_codeql().await {
                 Some(p) => p,
                 None => PathBuf::new(),
             },
         };
 
+        let version: Option<String> = CodeQL::get_version(&path).await.ok();
+
         Ok(CodeQL {
+            version,
             path,
             threads: self.threads,
             ram: self.ram.into(),
