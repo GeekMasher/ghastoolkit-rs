@@ -70,6 +70,9 @@ pub enum ArgumentCommands {
         #[clap(short, long, help = "Repository mode")]
         repo: bool,
 
+        #[clap(long, help = "List CodeQL Languages")]
+        languages: bool,
+
         #[clap(long, help = "CodeQL Language")]
         language: Option<String>,
 

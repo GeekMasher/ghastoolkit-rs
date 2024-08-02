@@ -83,6 +83,7 @@ async fn main() -> Result<()> {
             codeql_databases,
             list,
             repo,
+            languages,
             language,
             threads,
             ram,
@@ -92,13 +93,9 @@ async fn main() -> Result<()> {
                 .path(codeql_path.unwrap_or_default())
                 .threads(threads.unwrap_or_default())
                 .ram(ram.unwrap_or_default())
-                .build()?;
-
+                .build()
+                .await?;
             info!("CodeQL :: {}", codeql);
-            info!(
-                "CodeQL Languages Loaded :: {}",
-                codeql.get_languages().await?.len()
-            );
 
             if list {
                 let databases = CodeQLDatabases::from(codeql_databases);
@@ -107,6 +104,13 @@ async fn main() -> Result<()> {
                     info!("{}", database);
                 }
                 return Ok(());
+            } else if languages {
+                let languages = codeql.get_languages().await?;
+                info!("CodeQL Languages Loaded :: {}", languages.len());
+
+                for language in languages {
+                    info!("> {}", language);
+                }
             } else if repo {
                 info!("Repository Mode :: {}", repository);
 
