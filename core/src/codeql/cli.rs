@@ -26,7 +26,7 @@ pub struct CodeQL {
     /// Amount of RAM to use
     ram: Option<usize>,
     /// The search path for the CodeQL CLI
-    search_path: Vec<String>,
+    search_path: Vec<PathBuf>,
     /// Additional packs to use
     additional_packs: Vec<String>,
 }
@@ -96,7 +96,7 @@ impl CodeQL {
     #[cfg(feature = "toolcache")]
     async fn find_codeql_toolcache() -> Option<PathBuf> {
         let toolcache = ghactions::ToolCache::new();
-        if let Ok(tool) = toolcache.find("CodeQL", "latest").await {
+        if let Ok(tool) = toolcache.find("CodeQL", "2.x").await {
             return Some(tool.path().clone());
         }
         None
@@ -250,13 +250,27 @@ pub struct CodeQLBuilder {
     threads: usize,
     ram: usize,
 
-    search_path: Vec<String>,
+    search_paths: Vec<PathBuf>,
     additional_packs: Vec<String>,
 }
 
 impl CodeQLBuilder {
     /// Set the path to the CodeQL CLI
-    pub fn path(mut self, path: String) -> Self {
+    ///
+    /// ```rust
+    /// use ghastoolkit::codeql::cli::CodeQL;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let codeql = CodeQL::init()
+    ///     .path("/path/to/codeql")
+    ///     .build()
+    ///     .await
+    ///     .expect("Failed to create CodeQL instance");
+    /// # }
+    /// ```
+    pub fn path(mut self, path: impl Into<String>) -> Self {
+        let path = path.into();
         if !path.is_empty() {
             self.path = Some(path);
         }
@@ -282,8 +296,21 @@ impl CodeQLBuilder {
     }
 
     /// Add a search path to the CodeQL CLI
-    pub fn search_path(mut self, path: String) -> Self {
-        self.search_path.push(path);
+    ///
+    /// ```rust
+    /// use ghastoolkit::codeql::cli::CodeQL;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let codeql = CodeQL::init()
+    ///     .search_path("/path/to/codeql")
+    ///     .build()
+    ///     .await
+    ///     .expect("Failed to create CodeQL instance");
+    /// # }
+    /// ```
+    pub fn search_path(mut self, path: impl Into<PathBuf>) -> Self {
+        self.search_paths.push(path.into());
         self
     }
 
@@ -305,7 +332,7 @@ impl CodeQLBuilder {
             threads: self.threads,
             ram: self.ram.into(),
             additional_packs: self.additional_packs.clone(),
-            search_path: self.search_path.clone(),
+            search_path: self.search_paths.clone(),
         })
     }
 }
