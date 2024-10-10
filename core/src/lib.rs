@@ -10,7 +10,7 @@
 //!   - [x] CodeQL Database(s)
 //! - [x] GitHub Advanced Security APIs
 //!   - [x] Code Scanning
-//!   - [ ] Secret Scanning
+//!   - [x] Secret Scanning
 //!
 //! ## Usage
 //!
@@ -32,22 +32,16 @@
 #![allow(dead_code)]
 #![deny(missing_docs)]
 
-/// CodeQL module is used to interact with CodeQL CLI and databases
 pub mod codeql;
-/// Code Scanning module is used to interact with GitHub's Code Scanning API
 pub mod codescanning;
-/// GHASToolkit errors module contains all the errors that can be thrown by the library
 pub mod errors;
-/// GitHub Octokit client for interacting with GitHub's API endpoints
 pub mod octokit;
-/// GHASToolkit supplychain module contains all the supplychain related functions and helpers
+pub mod secretscanning;
 pub mod supplychain;
-/// GHASToolkit utils module contains all the utility functions and helpers
 pub mod utils;
 
-/// GitHub API errors
 pub use errors::GHASError;
-/// GitHub API client
+
 pub use octokit::github::GitHub;
 pub use octokit::repository::Repository;
 
