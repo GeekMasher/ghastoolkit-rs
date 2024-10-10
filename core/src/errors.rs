@@ -1,3 +1,6 @@
+//! # GHASToolkit Errors
+//!
+//! This module contains all the errors that can be thrown by the library
 use octocrab::Error as OctocrabError;
 use regex::Error as RegexError;
 

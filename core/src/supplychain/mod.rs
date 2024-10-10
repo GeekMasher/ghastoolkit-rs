@@ -1,3 +1,7 @@
+//! # GHASToolkit supplychain module
+//!
+//! This contains all the supplychain related functions and helpers
+
 /// This module contains the dependencies
 pub mod dependencies;
 /// This module contains the dependency

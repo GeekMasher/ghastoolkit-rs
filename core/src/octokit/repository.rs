@@ -1,3 +1,13 @@
+//! # Repository
+//!
+//! **Example:**
+//!
+//! ```rust
+//! use ghastoolkit::Repository;
+//!
+//! let repo = Repository::new("geekmasher".to_string(), "ghastoolkit-rs".to_string());
+//!
+//! ```
 use git2::Repository as GitRepository;
 use std::{fmt::Display, path::PathBuf};
 
@@ -27,10 +37,21 @@ pub struct Repository {
 
 impl Repository {
     /// Create a new Repository instance with owner (organization or user) and repo name
-    pub fn new(owner: String, repo: String) -> Self {
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// use ghastoolkit::Repository;
+    ///
+    /// let repo = Repository::new("geekmasher", "ghastoolkit-rs");
+    ///
+    /// # assert_eq!(repo.owner(), "geekmasher");
+    /// # assert_eq!(repo.name(), "ghastoolkit-rs");
+    /// ```
+    pub fn new(owner: impl Into<String>, repo: impl Into<String>) -> Self {
         Self {
-            owner,
-            name: repo,
+            owner: owner.into(),
+            name: repo.into(),
             ..Default::default()
         }
     }

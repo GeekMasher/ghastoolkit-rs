@@ -6,7 +6,8 @@ use octocrab::{Octocrab, Result as OctoResult};
 use url::Url;
 
 use crate::{
-    codescanning::api::CodeScanningHandler, octokit::models::GitHubLanguages, GHASError, Repository,
+    codescanning::api::CodeScanningHandler, octokit::models::GitHubLanguages,
+    secretscanning::api::SecretScanningHandler, GHASError, Repository,
 };
 
 /// GitHub instance
@@ -138,6 +139,11 @@ impl GitHub {
     /// ```
     pub fn octocrab(&self) -> &octocrab::Octocrab {
         &self.octocrab
+    }
+
+    /// Get Secret Scanning Handler based on the Repository
+    pub fn secret_scanning<'a>(&'a self, repo: &'a Repository) -> SecretScanningHandler {
+        SecretScanningHandler::new(self.octocrab(), repo)
     }
 
     /// Get Code Scanning Handler based on the Repository provided.
