@@ -52,6 +52,21 @@ pub struct Arguments {
 
 #[derive(Subcommand, Debug)]
 pub enum ArgumentCommands {
+    Secretscanning {
+        /// Secret Scanning Alert State
+        #[clap(short, long)]
+        state: Option<String>,
+        /// Secret Type / Name
+        #[clap(short, long)]
+        r#type: Option<String>,
+        /// Validity
+        #[clap(short, long)]
+        validity: Option<String>,
+        /// Short Links
+        #[clap(short, long, default_value_t = false)]
+        links: bool,
+    },
+
     Codescanning {
         #[clap(short, long, help = "Audit Mode", default_value_t = false)]
         audit: bool,
