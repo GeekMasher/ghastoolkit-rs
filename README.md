@@ -22,8 +22,8 @@ This is the [GitHub Advanced Security][advanced-security] (GHAS) Toolkit in [Rus
   - GitHub Cloud and Enterprise Server support
   - API Support
     - [x] [Code Scanning][github-code-scanning]
-    - [ ] 👷 [Secret Scanning][github-secret-scanning]
-    - [ ] 👷 [Supply Chain][github-supplychain]
+    - [x] 👷 [Secret Scanning][github-secret-scanning]
+    - [x] 👷 [Supply Chain][github-supplychain]
       - [ ] 👷 [Dependabot][github-dependabot] (Security Alerts)
       - [ ] 👷 [Dependency Graph][github-depgraph] (SCA / SBOMs)
       - [ ] 👷 [Security Advisories][github-advisories]
