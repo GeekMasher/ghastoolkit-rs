@@ -39,7 +39,7 @@ walkdir = "2.5"
 time = "0.3.36"
 
 # For CodeQL in ToolCache
-ghactions = { version = "^0.11", features = ["toolcache"], optional = true }
+ghactions = { version = "^0.12", features = ["toolcache"], optional = true }
 
 # Async
 async-trait = { version = "0.1", optional = true }
