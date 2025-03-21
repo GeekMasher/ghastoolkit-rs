@@ -23,7 +23,7 @@ jobs:
           
       - name: "Publish"
         id: publish
-        uses: 42ByteLabs/rust-tooling/publish@main
+        uses: 42ByteLabs/rust-tooling/publish@GeekMasher-patch-1
         with:
           token: ${{ secrets.CRATES_TOKEN }}
 
