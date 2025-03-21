@@ -7,7 +7,6 @@ on:
 jobs:
   cargo-publish:
     runs-on: ubuntu-latest
-
     permissions:
       contents: write
 
@@ -23,23 +22,25 @@ jobs:
           
       - name: "Publish"
         id: publish
-        uses: 42ByteLabs/rust-tooling/publish@GeekMasher-patch-1
+        uses: 42ByteLabs/rust-tooling/publish@main
         with:
           token: ${{ secrets.CRATES_TOKEN }}
 
       - name: "GitHub Release"
-        if: ${{ steps.publish.outputs.changed }}
+        if: steps.publish.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
+
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git tag "${{ needs.cargo-check.outputs.version }}" --force
+          git tag "${{ inputs.version }}" --force
           git push origin ${{ github.ref_name }}
           git push origin --tags --force
 
           gh release create --latest --generate-notes \
-            --title "v${{ needs.cargo-check.outputs.version }}" \
+            --title "v${{ inputs.version }}" \
             "${{ needs.cargo-check.outputs.version }}"
 
