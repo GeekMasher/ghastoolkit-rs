@@ -1,0 +1,8 @@
+name: "ghastoolkit"
+repository: "geekmasher/ghastoolkit"
+version: "0.6.0"
+
+ecosystems:
+  - Docs
+  - Rust
+
