@@ -75,7 +75,7 @@ impl CodeQLPack {
         name: impl Into<String>,
     ) -> Result<Self, GHASError> {
         let name = name.into();
-        if let Some((namespace, mut packname)) = &name.split_once('/') {
+        if let Some((namespace, mut packname)) = name.split_once('/') {
             let version: Option<String> = if let Some((pname, version)) = packname.split_once('@') {
                 packname = pname;
                 Some(version.to_string())
