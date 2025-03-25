@@ -3,6 +3,7 @@ name: Cargo - Publish
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   cargo-publish:
