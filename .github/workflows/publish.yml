@@ -3,49 +3,11 @@ name: Cargo - Publish
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  
-  cargo-check:
-    runs-on: ubuntu-latest
-
-    outputs:
-      version: ${{ steps.crates-check.outputs.version }}
-      outdated: ${{ steps.crates-check.outputs.outdated }}
-
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Check crates.io"
-        id: crates-check
-        run: |
-          set -e
-
-          CARGO_LOCATION="./core/Cargo.toml"
-          CRATE_NAME="ghastoolkit"
-          # TODO: Auto detect name
-          current_version=$(grep -oP '^version = "(.*)"$' $CARGO_LOCATION | cut -d '"' -f 2)
-          crates_remote=$(curl -s https://crates.io/api/v1/crates/$CRATE_NAME/versions | jq -r '.versions[0].num')
-
-          echo "💻 Current version   :: $current_version"
-          echo "🦀 Crates.io version :: $crates_remote"
-
-          if [ "$current_version" != "$crates_remote" ]; then
-            echo "🚀 The crate is outdated... Let's update it!"
-            echo "version=$current_version" >> $GITHUB_OUTPUT
-            echo "outdated=true" >> $GITHUB_OUTPUT
-          else
-            echo "🍹 Crate is up to date. Lets sit back and relax..."
-            echo "outdated=false" >> $GITHUB_OUTPUT
-          fi
-
   cargo-publish:
     runs-on: ubuntu-latest
-    needs: [ cargo-check ]
-
-    if: ${{ needs.cargo-check.outputs.outdated == 'true' }}
-
     permissions:
       contents: write
 
@@ -58,37 +20,28 @@ jobs:
         with:
           toolchain: stable
           components: clippy
-
-      - name: "Build / Validate"
-        run: |
-          cargo build --workspace
-          cargo test --workspace
           
       - name: "Publish"
-        run: |
-          set -e
-          cargo login ${{ secrets.CRATES_TOKEN }}
-
-          INPUT="ghastoolkit,ghastoolkit-cli"
-          IFS=',' read -r -a elements <<< "$INPUT"
-          for element in "${elements[@]}"
-          do
-            echo "🚀 Publishing crate '$element'"
-            cargo publish -p "$element" --allow-dirty
-          done
+        id: publish
+        uses: 42ByteLabs/rust-tooling/publish@main
+        with:
+          token: ${{ secrets.CRATES_TOKEN }}
 
       - name: "GitHub Release"
+        if: steps.publish.outputs.changed == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
+
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git tag "${{ needs.cargo-check.outputs.version }}" --force
+          git tag "${{ inputs.version }}" --force
           git push origin ${{ github.ref_name }}
           git push origin --tags --force
 
           gh release create --latest --generate-notes \
-            --title "v${{ needs.cargo-check.outputs.version }}" \
+            --title "v${{ inputs.version }}" \
             "${{ needs.cargo-check.outputs.version }}"
 
