@@ -1,8 +1,7 @@
 //! CodeQL Extractor YAML Model
 
-use std::path::PathBuf;
-
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 /// CodeQL Extractor
 ///
@@ -33,14 +32,20 @@ use serde::{Deserialize, Serialize};
 ///
 ///
 /// ```
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct CodeQLExtractor {
+    /// Root Directory of the extractor-pack
+    #[serde(skip)]
+    pub path: PathBuf,
     /// The name of the extractor
     pub name: String,
     /// The display name of the extractor
     pub display_name: String,
     /// The version of the extractor
     pub version: String,
+    /// The build modes
+    #[serde(default)]
+    pub build_modes: Vec<String>,
     /// Column kind
     #[serde(skip_serializing_if = "Option::is_none")]
     pub column_kind: Option<String>,
@@ -65,20 +70,48 @@ impl CodeQLExtractor {
     }
     /// Load CodeQL Extractor from a file
     pub fn load_path(path: impl Into<PathBuf>) -> Result<Self, crate::errors::GHASError> {
-        let path = path.into();
+        let mut path: PathBuf = path.into();
+        if path.is_dir() {
+            path = path.join("codeql-extractor.yml");
+        }
+        log::debug!("Loading CodeQL Extractor from: {}", path.display());
+        if !path.exists() {
+            return Err(crate::GHASError::IoError(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                "File not found",
+            )));
+        }
         let content = std::fs::read_to_string(&path)?;
-        let extractor: CodeQLExtractor = serde_yaml::from_str(&content)?;
+        let mut extractor: CodeQLExtractor = serde_yaml::from_str(&content)?;
+        if let Some(parent) = path.parent() {
+            extractor.path = parent.to_path_buf();
+        }
         Ok(extractor)
     }
 
     /// Get supported languages for an extractor
     pub fn languages(&self) -> Vec<String> {
-        self.github_api_languages.clone().unwrap_or_default()
+        let mut results = Vec::new();
+        results.extend(self.github_api_languages.clone().unwrap_or_default());
+        results
+    }
+
+    /// Get the build modes
+    pub fn build_modes(&self) -> Vec<super::BuildMode> {
+        self.build_modes
+            .iter()
+            .map(|mode| match mode.as_str() {
+                "none" | "buildless" => super::BuildMode::None,
+                "auto" => super::BuildMode::AutoBuild,
+                "manual" => super::BuildMode::Manual,
+                _ => super::BuildMode::None,
+            })
+            .collect()
     }
 }
 
 /// CodeQL Extractor File Type
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct CodeQLExtractorFileType {
     /// Name
     pub name: String,

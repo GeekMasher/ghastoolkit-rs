@@ -1,9 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
-    codeql::{database::queries::CodeQLQueries, CodeQLLanguage},
+    CodeQL, CodeQLDatabase, CodeQLDatabases, GHASError, codeql::database::queries::CodeQLQueries,
     utils::sarif::Sarif,
-    CodeQL, CodeQLDatabase, CodeQLDatabases, GHASError,
 };
 
 /// CodeQL Database Handler
@@ -66,30 +65,11 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
 
     /// Create a new CodeQL Database using the provided database
     pub async fn create(&mut self) -> Result<(), GHASError> {
-        let args = self.create_cmd()?;
-
-        // Create path
-        if !self.database.path().exists() {
-            std::fs::create_dir_all(self.database.path())?;
-        }
-
-        self.codeql.run(args).await?;
-
-        Ok(())
-    }
-
-    /// Create the command to create the database
-    fn create_cmd(&self) -> Result<Vec<&str>, GHASError> {
         let mut args = vec!["database", "create"];
 
         // Check if language is set
-        if self.database.language != CodeQLLanguage::None {
-            args.extend(vec!["-l", &self.database.language()]);
-        } else {
-            return Err(GHASError::CodeQLDatabaseError(
-                "No language provided".to_string(),
-            ));
-        }
+        args.extend(vec!["-l", &self.database.language()]);
+
         // Add source root
         if let Some(source) = &self.database.source {
             args.extend(vec!["-s", source.to_str().expect("Invalid Source Root")]);
@@ -102,12 +82,25 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         if self.overwrite {
             args.push("--overwrite");
         }
+        // Add Search Paths
+        let search_paths = self.codeql.search_paths().join(":");
+        if search_paths.is_empty() {
+            args.push("--search-path");
+            args.push(&search_paths);
+        }
 
         // Add the path to the database
         let path = self.database.path.to_str().expect("Invalid Database Path");
         args.push(path);
 
-        Ok(args)
+        // Create path
+        if !self.database.path().exists() {
+            std::fs::create_dir_all(self.database.path())?;
+        }
+
+        self.codeql.run(args).await?;
+
+        Ok(())
     }
 
     pub(crate) fn default_results(database: &CodeQLDatabase) -> PathBuf {
@@ -120,14 +113,12 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
                 repo.owner(),
                 repo.name(),
             ));
-        } else if database.language != CodeQLLanguage::None {
+        } else {
             path.push(format!(
                 "{}-{}.sarif",
                 database.language.language(),
                 database.name
             ));
-        } else {
-            path.push(format!("{}.sarif", database.name.clone()));
         }
 
         path

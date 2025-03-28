@@ -1,112 +1,76 @@
 use std::fmt::{Debug, Display};
+use std::path::PathBuf;
+
+use super::CodeQLExtractor;
+
+/// CodeQL Languages
+#[derive(Debug, Clone, Default)]
+pub struct CodeQLLanguages {
+    languages: Vec<CodeQLLanguage>,
+}
+
+impl CodeQLLanguages {
+    /// Create a new instance of CodeQLLanguages
+    pub fn new(languages: Vec<CodeQLLanguage>) -> Self {
+        CodeQLLanguages { languages }
+    }
+    /// Check if a language is supported by CodeQL
+    pub fn check(&self, language: impl Into<String>) -> bool {
+        let language = language.into();
+        for lang in &self.languages {
+            if lang.extractor.languages().contains(&language) {
+                return true;
+            }
+        }
+        false
+    }
+
+    /// Get all languages supported by CodeQL
+    pub fn get_all(&self) -> &Vec<CodeQLLanguage> {
+        &self.languages
+    }
+    /// Get all primary languages supported by CodeQL
+    pub fn get_languages(&self) -> Vec<CodeQLLanguage> {
+        self.languages
+            .iter()
+            .filter(|l| !l.is_secondary())
+            .cloned()
+            .collect()
+    }
+    /// Get all secondary languages supported by CodeQL
+    pub fn get_secondary(&self) -> Vec<CodeQLLanguage> {
+        self.languages
+            .iter()
+            .filter(|l| l.is_secondary())
+            .cloned()
+            .collect()
+    }
+}
 
 /// Languages supported by CodeQL.
 #[derive(Default, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum CodeQLLanguage {
-    /// C Programming Language
-    C,
-    /// C++ Programming Language
-    Cpp,
-    /// C# Programming Language
-    CSharp,
-    /// Go / GoLang Programming Language
-    Go,
-    /// Java Programming Language
-    Java,
-    /// JavaScript Programming Language
-    JavaScript,
-    /// Kotlin Programming Language
-    Kotlin,
-    /// Python Programming Language
-    Python,
-    /// TypeScript Programming Language
-    TypeScript,
-    /// Swift Programming Language
-    Swift,
-    /// Ruby Programming Language
-    Ruby,
-    /// Secondary languages (properties, csv, yaml, html, etc)
-    Secondary(String),
-    /// Custom Language
-    Custom(String),
-    /// No language
-    #[default]
-    None,
+pub struct CodeQLLanguage {
+    name: String,
+    extractor: CodeQLExtractor,
 }
 
 impl CodeQLLanguage {
     /// Get the pretty name of the language
     pub fn pretty(&self) -> &str {
-        match self {
-            CodeQLLanguage::C | CodeQLLanguage::Cpp => "C / C++",
-            CodeQLLanguage::CSharp => "C#",
-            CodeQLLanguage::Go => "Go",
-            CodeQLLanguage::Java | CodeQLLanguage::Kotlin => "Java / Kotlin",
-            CodeQLLanguage::JavaScript | CodeQLLanguage::TypeScript => "JavaScript / TypeScript",
-            CodeQLLanguage::Python => "Python",
-            CodeQLLanguage::Swift => "Swift",
-            CodeQLLanguage::Ruby => "Ruby",
-            CodeQLLanguage::Secondary(a) => match a.as_str() {
-                "properties" => "Properties",
-                "csv" => "CSV",
-                "yaml" => "YAML",
-                "xml" => "XML",
-                "html" => "HTML",
-                _ => a,
-            },
-            CodeQLLanguage::Custom(a) => a,
-            CodeQLLanguage::None => "None",
-        }
+        &self.extractor.display_name
     }
 
     /// Get the language string for CodeQL (aliases are supported)
     pub fn language(&self) -> &str {
-        match self {
-            CodeQLLanguage::C | CodeQLLanguage::Cpp => "cpp",
-            CodeQLLanguage::CSharp => "csharp",
-            CodeQLLanguage::Go => "go",
-            CodeQLLanguage::Java | CodeQLLanguage::Kotlin => "java",
-            CodeQLLanguage::JavaScript | CodeQLLanguage::TypeScript => "javascript",
-            CodeQLLanguage::Python => "python",
-            CodeQLLanguage::Swift => "swift",
-            CodeQLLanguage::Ruby => "ruby",
-            CodeQLLanguage::Secondary(a) => a,
-            CodeQLLanguage::Custom(a) => a,
-            CodeQLLanguage::None => "none",
-        }
+        &self.extractor.name
     }
 
     /// Check if the language is a secondary language
     pub fn is_secondary(&self) -> bool {
-        matches!(self, CodeQLLanguage::Secondary(_))
-    }
-
-    /// Check if the language is None
-    pub fn is_none(&self) -> bool {
-        matches!(self, CodeQLLanguage::None)
-    }
-
-    /// Check if the language is custom
-    pub fn is_custom(&self) -> bool {
-        matches!(self, CodeQLLanguage::Custom(_))
-    }
-
-    /// Get the list of supported languages
-    pub fn list() -> Vec<&'static str> {
-        // TODO(geekmasher): This could be a lot cleaner
-        vec![
-            "c",
-            "cpp",
-            "csharp",
-            "go",
-            "java",
-            "javascript",
-            "kotlin",
-            "python",
-            "typescript",
-            "swift",
-            "ruby",
-        ]
+        match self.extractor.name.as_str() {
+            "properties" | "csv" | "yaml" | "xml" | "html" => true,
+            _ => false,
+        }
     }
 }
 
@@ -120,110 +84,26 @@ impl Debug for CodeQLLanguage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.is_secondary() {
             write!(f, "Secondary('{}')", self.pretty())
-        } else if self.is_custom() {
-            write!(f, "Custom('{}')", self.pretty())
         } else {
             write!(f, "Primary('{}')", self.pretty())
         }
     }
 }
 
-impl From<(&str, bool)> for CodeQLLanguage {
-    fn from((s, custom): (&str, bool)) -> Self {
-        match s.to_lowercase().as_str() {
-            "c" => CodeQLLanguage::C,
-            "cpp" | "c++" => CodeQLLanguage::Cpp,
-            "csharp" | "c#" => CodeQLLanguage::CSharp,
-            "go" | "golang" => CodeQLLanguage::Go,
-            "java" => CodeQLLanguage::Java,
-            "kotlin" => CodeQLLanguage::Kotlin,
-            "javascript" | "js" => CodeQLLanguage::JavaScript,
-            "typescript" | "ts" => CodeQLLanguage::TypeScript,
-            "python" | "py" => CodeQLLanguage::Python,
-            "swift" => CodeQLLanguage::Swift,
-            "ruby" => CodeQLLanguage::Ruby,
-            "properties" | "csv" | "yaml" | "xml" | "html" => {
-                CodeQLLanguage::Secondary(s.to_string())
-            }
-            _ => {
-                if custom {
-                    CodeQLLanguage::Custom(s.to_string())
-                } else {
-                    CodeQLLanguage::None
-                }
-            }
+impl From<(String, PathBuf)> for CodeQLLanguage {
+    fn from(value: (String, PathBuf)) -> Self {
+        CodeQLLanguage {
+            name: value.0.clone(),
+            extractor: CodeQLExtractor::load_path(value.1.clone()).unwrap(),
         }
-    }
-}
-
-impl From<&str> for CodeQLLanguage {
-    fn from(s: &str) -> Self {
-        CodeQLLanguage::from((s, false))
     }
 }
 
 impl From<String> for CodeQLLanguage {
-    fn from(s: String) -> Self {
-        CodeQLLanguage::from(s.as_str())
-    }
-}
-
-impl From<Option<String>> for CodeQLLanguage {
-    fn from(s: Option<String>) -> Self {
-        match s {
-            Some(s) => CodeQLLanguage::from(s),
-            None => CodeQLLanguage::None,
+    fn from(value: String) -> Self {
+        CodeQLLanguage {
+            name: value.clone(),
+            extractor: CodeQLExtractor::default(),
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::codeql::CodeQLLanguage;
-
-    #[test]
-    fn test_parsing() {
-        let lang1 = CodeQLLanguage::from("c");
-        assert_eq!(lang1, CodeQLLanguage::C);
-
-        let lang2 = CodeQLLanguage::from("cpp");
-        assert_eq!(lang2, CodeQLLanguage::Cpp);
-
-        let lang3 = CodeQLLanguage::from("csharp");
-        assert_eq!(lang3, CodeQLLanguage::CSharp);
-
-        let lang4 = CodeQLLanguage::from("kotlin");
-        assert_eq!(lang4, CodeQLLanguage::Kotlin);
-        assert_eq!(lang4.language(), "java");
-    }
-
-    #[test]
-    fn test_pretty() {
-        let c = CodeQLLanguage::C;
-        assert_eq!(c.pretty(), "C / C++");
-
-        let py = CodeQLLanguage::Python;
-        assert_eq!(py.pretty(), "Python");
-        assert_eq!(py.language(), "python");
-
-        let cs = CodeQLLanguage::CSharp;
-        assert_eq!(cs.pretty(), "C#");
-        assert_eq!(cs.language(), "csharp");
-    }
-
-    #[test]
-    fn test_incorrect() {
-        // RIP Rust
-        let lang = CodeQLLanguage::from("Rust");
-        assert_eq!(lang, CodeQLLanguage::None);
-
-        let lang = CodeQLLanguage::Custom(String::from("Rust"));
-        assert_eq!(lang, CodeQLLanguage::Custom("Rust".to_string()));
-
-        let lang = CodeQLLanguage::from(Some("rust".to_string()));
-        assert_eq!(lang, CodeQLLanguage::None);
-
-        let lang = CodeQLLanguage::from(None);
-        assert_eq!(lang, CodeQLLanguage::None);
     }
 }

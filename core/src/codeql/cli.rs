@@ -6,13 +6,15 @@ use std::{
 use log::debug;
 
 use crate::{
-    codeql::{database::handler::CodeQLDatabaseHandler, CodeQLLanguage},
     CodeQLDatabase, GHASError,
+    codeql::{CodeQLLanguage, database::handler::CodeQLDatabaseHandler},
 };
 
 mod models;
 
 use models::ResolvedLanguages;
+
+use super::{CodeQLExtractor, languages::CodeQLLanguages};
 
 /// CodeQL CLI Wrapper to make it easier to run CodeQL commands
 #[derive(Debug, Clone)]
@@ -63,6 +65,14 @@ impl CodeQL {
         CodeQLBuilder::default()
     }
 
+    /// Get the search paths set for the CodeQL CLI to use
+    pub fn search_paths(&self) -> Vec<String> {
+        self.search_path
+            .iter()
+            .map(|p| p.to_str().unwrap().to_string())
+            .collect()
+    }
+
     /// Find CodeQL CLI on the system (asynchronous)
     pub async fn find_codeql() -> Option<PathBuf> {
         if let Some(p) = CodeQL::find_codeql_path() {
@@ -89,6 +99,19 @@ impl CodeQL {
         }
 
         None
+    }
+
+    /// Load a CodeQL extractor from a path
+    pub async fn load_extractor(
+        &mut self,
+        path: impl Into<PathBuf>,
+    ) -> Result<CodeQLExtractor, GHASError> {
+        let path = path.into();
+
+        let extractor = CodeQLExtractor::load_path(&path)?;
+        self.search_path.push(path);
+
+        Ok(extractor)
     }
 
     fn find_codeql_path() -> Option<PathBuf> {
@@ -191,40 +214,41 @@ impl CodeQL {
     ///
     /// # }
     /// ```
-    pub async fn get_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
-        Ok(self
-            .get_all_languages()
-            .await?
-            .into_iter()
-            .filter(|l| !l.is_secondary() || !l.is_none())
-            .collect())
+    pub async fn get_languages<'a>(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+        Ok(self.get_all_languages().await?.get_languages())
     }
 
     /// Get the secondary languages supported by the CodeQL CLI
     pub async fn get_secondary_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
-        Ok(self
-            .get_all_languages()
-            .await?
-            .into_iter()
-            .filter(|l| l.is_secondary())
-            .collect())
+        Ok(self.get_all_languages().await?.get_secondary())
     }
 
     /// Get all languages supported by the CodeQL CLI
-    pub async fn get_all_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
-        match self
-            .run(vec!["resolve", "languages", "--format", "json"])
-            .await
-        {
+    pub async fn get_all_languages(&self) -> Result<CodeQLLanguages, GHASError> {
+        let mut args = vec!["resolve", "languages", "--format", "json"];
+
+        if !self.search_path.is_empty() {
+            for path in &self.search_path {
+                args.push("--search-path");
+                args.push(path.to_str().unwrap());
+            }
+        }
+
+        log::debug!("CodeQL.get_all_languages args :: {:?}", args);
+
+        match self.run(args).await {
             Ok(v) => {
                 let languages: ResolvedLanguages = serde_json::from_str(&v)?;
                 let mut result = Vec::new();
-                for (language, _) in languages {
+                for (language, path) in languages {
                     // allow custom languages if they come from CodeQL CLI
-                    result.push(CodeQLLanguage::from((language.as_str(), true)));
+                    result.push(CodeQLLanguage::from((
+                        language,
+                        PathBuf::from(path.first().unwrap()),
+                    )));
                 }
                 result.sort();
-                Ok(result)
+                Ok(CodeQLLanguages::new(result))
             }
             Err(e) => Err(e),
         }

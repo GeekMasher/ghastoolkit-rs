@@ -9,8 +9,8 @@ use std::{
 use log::debug;
 
 use crate::{
-    codeql::{database::config::CodeQLDatabaseConfig, CodeQLLanguage},
     CodeQLDatabases, GHASError, Repository,
+    codeql::{CodeQLLanguage, database::config::CodeQLDatabaseConfig},
 };
 
 /// CodeQL Database Configuration file
@@ -299,10 +299,8 @@ impl CodeQLDatabaseBuilder {
         if let Some(ref repo) = self.repository {
             path.push(repo.owner());
             path.push(repo.name());
-            if self.language != CodeQLLanguage::None {
-                path.push(self.language.language());
-            }
-        } else if self.language != CodeQLLanguage::None {
+            path.push(self.language.language());
+        } else if !self.language.is_secondary() {
             path.push(format!("{}-{}", self.language.language(), self.name));
         } else {
             path.push(self.name.clone());
