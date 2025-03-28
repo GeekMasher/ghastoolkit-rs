@@ -1,7 +1,7 @@
 use anyhow::Result;
 use ghastoolkit::{
-    codeql::{database::queries::CodeQLQueries, CodeQLLanguage},
     CodeQL, CodeQLDatabase, CodeQLDatabases, Repository,
+    codeql::{CodeQLLanguage, database::queries::CodeQLQueries},
 };
 use log::{debug, info};
 use secretscanning::secret_scanning;
@@ -12,7 +12,7 @@ mod codescanning;
 mod prompts;
 mod secretscanning;
 
-use crate::prompts::{prompt_select, prompt_text};
+use crate::prompts::{prompt_languages, prompt_text};
 use codescanning::code_scanning;
 
 #[tokio::main]
@@ -88,12 +88,14 @@ async fn main() -> Result<()> {
                 info!("Cloning repository to :: {}", tempdir.display());
                 let _ = github.clone_repository(&mut repository, &tempdir.display().to_string());
 
-                let language: CodeQLLanguage = CodeQLLanguage::from(match language {
-                    Some(language) => language,
+                let language: CodeQLLanguage = match language {
+                    Some(language) => CodeQLLanguage::from(language),
                     None => {
-                        prompt_select("Select Language: ", &CodeQLLanguage::list())?.to_string()
+                        let languages = codeql.get_languages().await?;
+                        prompt_languages("Select Language: ", &languages)
+                            .expect("Failed to select language")
                     }
-                });
+                };
 
                 let mut database = CodeQLDatabase::init()
                     .source(tempdir.display().to_string())
