@@ -359,6 +359,7 @@ mod tests {
             .build()
             .expect("Failed to build database");
 
+        assert_eq!(db.language(), "python");
         assert_eq!(db.path, path);
     }
 
