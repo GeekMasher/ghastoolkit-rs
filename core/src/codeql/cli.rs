@@ -65,12 +65,31 @@ impl CodeQL {
         CodeQLBuilder::default()
     }
 
-    /// Get the search paths set for the CodeQL CLI to use
-    pub fn search_paths(&self) -> Vec<String> {
+    /// Get the search paths set for the CodeQL CLI to use.
+    ///
+    /// Paths are separated by a colon
+    pub(crate) fn search_paths(&self) -> String {
         self.search_path
             .iter()
             .map(|p| p.to_str().unwrap().to_string())
-            .collect()
+            .collect::<Vec<String>>()
+            .join(":")
+    }
+
+    /// Add the search path to the CodeQL CLI arguments
+    pub(crate) fn add_search_path(&self, args: &mut Vec<String>) {
+        if !self.search_path.is_empty() {
+            args.push("--search-path".to_string());
+            args.push(self.search_paths());
+        }
+    }
+
+    /// Add the additional packs to the CodeQL CLI arguments
+    pub(crate) fn add_additional_packs(&self, args: &mut Vec<String>) {
+        if !self.additional_packs.is_empty() {
+            args.push("--additional-packs".to_string());
+            args.push(self.additional_packs.join(","));
+        }
     }
 
     /// Find CodeQL CLI on the system (asynchronous)
@@ -161,6 +180,7 @@ impl CodeQL {
 
     /// Pass a CodeQLDatabase to the CodeQL CLI to return a CodeQLDatabaseHandler.
     /// This handler can be used to run queries and other operations on the database.
+    #[allow(elided_named_lifetimes)]
     pub fn database<'a>(&'a self, db: &'a CodeQLDatabase) -> CodeQLDatabaseHandler {
         CodeQLDatabaseHandler::new(db, self)
     }
@@ -173,7 +193,7 @@ impl CodeQL {
     /// Get the version of the CodeQL CLI
     pub async fn get_version(path: &Path) -> Result<String, GHASError> {
         let output = tokio::process::Command::new(path)
-            .args(&["version", "--format", "terse"])
+            .args(["version", "--format", "terse"])
             .output()
             .await?;
 
@@ -214,7 +234,7 @@ impl CodeQL {
     ///
     /// # }
     /// ```
-    pub async fn get_languages<'a>(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
+    pub async fn get_languages(&self) -> Result<Vec<CodeQLLanguage>, GHASError> {
         Ok(self.get_all_languages().await?.get_languages())
     }
 
@@ -227,11 +247,10 @@ impl CodeQL {
     pub async fn get_all_languages(&self) -> Result<CodeQLLanguages, GHASError> {
         let mut args = vec!["resolve", "languages", "--format", "json"];
 
+        let search_path = self.search_paths();
         if !self.search_path.is_empty() {
-            for path in &self.search_path {
-                args.push("--search-path");
-                args.push(path.to_str().unwrap());
-            }
+            args.push("--search-path");
+            args.push(&search_path);
         }
 
         log::debug!("CodeQL.get_all_languages args :: {:?}", args);

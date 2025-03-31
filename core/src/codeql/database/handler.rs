@@ -83,7 +83,7 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
             args.push("--overwrite");
         }
         // Add Search Paths
-        let search_paths = self.codeql.search_paths().join(":");
+        let search_paths = self.codeql.search_paths();
         if search_paths.is_empty() {
             args.push("--search-path");
             args.push(&search_paths);
