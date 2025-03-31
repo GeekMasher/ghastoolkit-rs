@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use anyhow::{Result, anyhow};
 use dialoguer::{FuzzySelect, theme::ColorfulTheme};
 use ghastoolkit::codeql::CodeQLLanguage;
