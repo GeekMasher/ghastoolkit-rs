@@ -82,7 +82,8 @@ impl<'octo> CodeScanningHandler<'octo> {
     /// The Output is the root for where the database will be downloaded too.
     ///
     /// The output path will be something like this:
-    /// ```
+    ///
+    /// ```text
     /// output
     /// └── owner
     ///    └── repo
