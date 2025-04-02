@@ -108,7 +108,7 @@ impl<'octo> CodeScanningHandler<'octo> {
         let dbpath = path.join("codeql-database.zip");
 
         if path.exists() {
-            // Remove the path as their might be an existing database
+            // Remove the path as there might be an existing database
             std::fs::remove_dir_all(&path)?;
         }
 
