@@ -91,6 +91,9 @@ pub enum ArgumentCommands {
         #[clap(long, help = "CodeQL Language")]
         language: Option<String>,
 
+        #[clap(short, long, help = "Download CodeQL Databases")]
+        download: bool,
+
         #[clap(long, help = "Number of Threads / CPU Cores to use")]
         threads: Option<usize>,
 

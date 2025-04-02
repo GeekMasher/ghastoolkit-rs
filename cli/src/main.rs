@@ -48,6 +48,7 @@ async fn main() -> Result<()> {
             repo,
             languages,
             language,
+            download,
             threads,
             ram,
         }) => {
@@ -74,6 +75,29 @@ async fn main() -> Result<()> {
                 for language in languages {
                     info!("> {}", language);
                 }
+            } else if download {
+                let cs_languages = github
+                    .code_scanning(&repository)
+                    .list_codeql_databases()
+                    .await?;
+                info!("CodeQL Languages Loaded :: {}", cs_languages.len());
+
+                let available_languages = cs_languages
+                    .iter()
+                    .map(|l| CodeQLLanguage::from(l.language.to_string()))
+                    .collect::<Vec<CodeQLLanguage>>();
+
+                let select_languages =
+                    prompt_languages("Select the language to download:", &available_languages)?;
+                log::info!("Selected languages: {:?}", select_languages);
+
+                let dbpath = github
+                    .code_scanning(&repository)
+                    .download_codeql_database(select_languages, &codeql_databases)
+                    .await?;
+                let db = CodeQLDatabase::load(&dbpath)?;
+
+                log::info!("Downloaded CodeQL databases to {}", db.path().display());
             } else if repo {
                 info!("Repository Mode :: {}", repository);
 
