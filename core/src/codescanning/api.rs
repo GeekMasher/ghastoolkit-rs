@@ -1,6 +1,10 @@
+use std::path::PathBuf;
+
+use super::models::ListCodeQLDatabase;
 use crate::{
+    GHASError, Repository,
+    codeql::CodeQLLanguage,
     codescanning::models::{CodeScanningAlert, CodeScanningAnalysis},
-    Repository,
 };
 use log::debug;
 use octocrab::{Octocrab, Page, Result as OctoResult};
@@ -50,6 +54,99 @@ impl<'octo> CodeScanningHandler<'octo> {
     /// Get a list of code scanning analyses for a repository
     pub fn analyses(&self) -> ListCodeScanningAnalyses {
         ListCodeScanningAnalyses::new(self)
+    }
+
+    /// List CodeQL databases
+    pub async fn list_codeql_databases(&self) -> OctoResult<Vec<ListCodeQLDatabase>> {
+        let route = format!(
+            "/repos/{owner}/{repo}/code-scanning/codeql/databases",
+            owner = self.repository.owner(),
+            repo = self.repository.name()
+        );
+        self.crab.get(route, None::<&()>).await
+    }
+
+    /// Get a CodeQL database by language
+    pub async fn get_codeql_database(&self, language: String) -> OctoResult<ListCodeQLDatabase> {
+        let route = format!(
+            "/repos/{owner}/{repo}/code-scanning/codeql/databases/{lang}",
+            owner = self.repository.owner(),
+            repo = self.repository.name(),
+            lang = language
+        );
+        self.crab.get(route, None::<&()>).await
+    }
+
+    /// Download a CodeQL database
+    ///
+    /// The Output is the root for where the database will be downloaded too.
+    ///
+    /// The output path will be something like this:
+    /// ```
+    /// output
+    /// └── owner
+    ///    └── repo
+    ///       └── {language}
+    /// ```
+    ///
+    /// Links:
+    /// - https://docs.github.com/en/rest/code-scanning/code-scanning#get-a-codeql-database-for-a-repository
+    ///
+    pub async fn download_codeql_database(
+        &self,
+        language: impl Into<CodeQLLanguage>,
+        output: impl Into<PathBuf>,
+    ) -> Result<PathBuf, GHASError> {
+        let language = language.into();
+        let output = output.into();
+        // Create the path
+        let path = output
+            .join(self.repository.owner())
+            .join(self.repository.name())
+            .join(language.language());
+        let dbpath = path.join("codeql-database.zip");
+
+        if path.exists() {
+            // Remove the path as their might be an existing database
+            std::fs::remove_dir_all(&path)?;
+        }
+
+        std::fs::create_dir_all(&path)?;
+        log::info!("Downloading CodeQL database to {}", path.display());
+
+        // TODO: Download the database
+        let route = format!(
+            "/repos/{owner}/{repo}/code-scanning/codeql/databases/{lang}",
+            owner = self.repository.owner(),
+            repo = self.repository.name(),
+            lang = language.language()
+        );
+        let data = match self.crab.download_zip(route).await {
+            Ok(data) => data,
+            Err(err) => {
+                log::error!("Failed to download CodeQL database");
+                log::error!("{:?}", err);
+                return Err(GHASError::CodeQLError(
+                    "Failed to download CodeQL database".to_string(),
+                ));
+            }
+        };
+
+        tokio::fs::write(&dbpath, data).await?;
+
+        self.unzip_codeql_database(&dbpath, &path)?;
+
+        Ok(path)
+    }
+
+    /// Unzip the CodeQL database
+    fn unzip_codeql_database(&self, zip: &PathBuf, output: &PathBuf) -> Result<(), GHASError> {
+        log::debug!("Unzipping CodeQL database to {}", output.display());
+        let file = std::fs::File::open(zip)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        archive.extract(output)?;
+
+        Ok(())
     }
 }
 
