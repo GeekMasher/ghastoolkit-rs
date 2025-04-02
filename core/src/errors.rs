@@ -56,6 +56,14 @@ pub enum GHASError {
     #[error("GitErrors: {0}")]
     GitErrors(#[from] git2::Error),
 
+    /// Zip Error (zip::result::ZipError)
+    #[error("ZipError: {0}")]
+    ZipError(#[from] zip::result::ZipError),
+
+    /// Walkdir Error (walkdir::Error)
+    #[error("WalkdirError: {0}")]
+    WalkdirError(#[from] walkdir::Error),
+
     /// Unknown Error
     #[error("UnknownError: {0}")]
     UnknownError(String),

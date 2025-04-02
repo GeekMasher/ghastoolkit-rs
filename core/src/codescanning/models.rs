@@ -123,3 +123,22 @@ pub struct CodeScanningAnalysis {
     /// Warning message.
     pub warning: Option<String>,
 }
+
+/// A CodeQL Database
+#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
+pub struct ListCodeQLDatabase {
+    /// ID
+    pub id: i32,
+    /// Name
+    pub name: String,
+    /// Language
+    pub language: String,
+    /// Content Type
+    pub content_type: String,
+    /// Size
+    pub size: i32,
+    /// Created At
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    /// Updated At
+    pub updated_at: chrono::DateTime<chrono::Utc>,
+}

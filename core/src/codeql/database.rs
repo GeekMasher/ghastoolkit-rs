@@ -9,7 +9,7 @@ use std::{
 use log::debug;
 
 use crate::{
-    CodeQLDatabases, GHASError, Repository,
+    CodeQLDatabases, GHASError, GitHub, Repository,
     codeql::{CodeQLLanguage, database::config::CodeQLDatabaseConfig},
 };
 
@@ -114,25 +114,63 @@ impl CodeQLDatabase {
     }
 
     /// Load a database from a directory
-    pub fn load(path: String) -> Result<CodeQLDatabase, GHASError> {
-        let mut config_path = std::path::PathBuf::from(path.clone());
-
-        if !config_path.exists() {
+    pub fn load(path: impl Into<PathBuf>) -> Result<CodeQLDatabase, GHASError> {
+        let path = path.into();
+        if !path.exists() {
             return Err(GHASError::CodeQLDatabaseError(
                 "Could not find codeql-database.yml".to_string(),
             ));
         }
 
         // If the path is a file, we need to pop it to get the directory
-        if config_path.is_file() && config_path.ends_with("codeql-database.yml") {
-            debug!("Loading CodeQL Database from: {}", config_path.display());
-            CodeQLDatabase::load_database_config(&config_path)
+        if path.is_file() && path.ends_with("codeql-database.yml") {
+            debug!("Loading CodeQL Database from: {}", path.display());
+            CodeQLDatabase::load_database_config(&path)
         } else {
             // If the path is a directory, we need to find the configuration file
-            debug!("Loading CodeQL Database from: {}", config_path.display());
-            config_path.push("codeql-database.yml");
-            CodeQLDatabase::load_database_config(&config_path)
+            let mut dbroot = PathBuf::new();
+
+            // Look for `codeql-database.yml` in the directory recursively
+            for entry in walkdir::WalkDir::new(&path) {
+                let entry = entry?;
+                if entry.file_name() == "codeql-database.yml" {
+                    dbroot = entry.path().to_path_buf();
+                    break;
+                }
+            }
+
+            log::debug!("Loading CodeQL Database from: {}", dbroot.display());
+            CodeQLDatabase::load_database_config(&dbroot)
         }
+    }
+
+    /// Download / Fetch database from GitHub
+    pub async fn download(
+        output: PathBuf,
+        repository: &Repository,
+        github: &GitHub,
+    ) -> Result<Vec<Self>, GHASError> {
+        let mut databases = Vec::new();
+        let databases_list = github
+            .code_scanning(repository)
+            .list_codeql_databases()
+            .await?;
+        println!("Found {} CodeQL databases", databases_list.len());
+
+        for database in databases_list {
+            let language = CodeQLLanguage::from(database.language);
+            log::debug!("Database Language: {:?}", language);
+
+            let database_path = github
+                .code_scanning(repository)
+                .download_codeql_database(language, &output)
+                .await?;
+
+            let db = CodeQLDatabase::load(&database_path)?;
+            databases.push(db);
+        }
+
+        Ok(databases)
     }
 
     fn load_database_config(path: &PathBuf) -> Result<CodeQLDatabase, GHASError> {
@@ -141,12 +179,19 @@ impl CodeQLDatabase {
                 "Could not find codeql-database.yml".to_string(),
             ))
         } else {
-            let config = CodeQLDatabaseConfig::read(path)?;
-            CodeQLDatabase::init()
-                .source(config.source_location_prefix.clone().unwrap_or_default())
-                .language(config.primary_language.clone())
-                .config(config.clone())
-                .build()
+            match CodeQLDatabaseConfig::read(path) {
+                Ok(config) => CodeQLDatabase::init()
+                    .source(config.source_location_prefix.clone().unwrap_or_default())
+                    .language(config.primary_language.clone())
+                    .config(config.clone())
+                    .build(),
+                Err(err) => {
+                    log::error!("Failed to load database configuration: {}", err);
+                    Err(GHASError::CodeQLDatabaseError(
+                        "Failed to load database configuration".to_string(),
+                    ))
+                }
+            }
         }
     }
 }
