@@ -60,6 +60,14 @@ pub enum GHASError {
     #[error("ZipError: {0}")]
     ZipError(#[from] zip::result::ZipError),
 
+    /// Reqwest Error (reqwest::Error)
+    #[error("ReqwestError: {0}")]
+    ReqwestError(#[from] reqwest::Error),
+
+    /// Http Error (http::Error)
+    #[error("HttpError: {0}")]
+    HttpInvalidHeader(#[from] http::header::InvalidHeaderValue),
+
     /// Walkdir Error (walkdir::Error)
     #[error("WalkdirError: {0}")]
     WalkdirError(#[from] walkdir::Error),
