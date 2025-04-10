@@ -122,16 +122,23 @@ impl<'octo> CodeScanningHandler<'octo> {
             repo = self.repository.name(),
             lang = language.language()
         );
-        let data = match self.crab.download_zip(route).await {
-            Ok(data) => data,
-            Err(err) => {
-                log::error!("Failed to download CodeQL database");
-                log::error!("{:?}", err);
-                return Err(GHASError::CodeQLError(
-                    "Failed to download CodeQL database".to_string(),
-                ));
-            }
-        };
+
+        // TODO: Swtich to useing the octocrab client
+        let client = reqwest::Client::new();
+        let data = client
+            .get(route)
+            .header(
+                http::header::ACCEPT,
+                http::header::HeaderValue::from_str("application/zip")?,
+            )
+            .header(
+                http::header::USER_AGENT,
+                http::header::HeaderValue::from_str("ghastoolkit")?,
+            )
+            .send()
+            .await?
+            .bytes()
+            .await?;
 
         tokio::fs::write(&dbpath, data).await?;
 
