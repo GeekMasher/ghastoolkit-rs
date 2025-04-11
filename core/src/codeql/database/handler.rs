@@ -65,6 +65,8 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
 
     /// Create a new CodeQL Database using the provided database
     pub async fn create(&mut self) -> Result<(), GHASError> {
+        log::debug!("Creating CodeQL Database: {:?}", self.database);
+
         let mut args = vec!["database", "create"];
 
         // Check if language is set
@@ -84,7 +86,7 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         }
         // Add Search Paths
         let search_paths = self.codeql.search_paths();
-        if search_paths.is_empty() {
+        if !search_paths.is_empty() {
             args.push("--search-path");
             args.push(&search_paths);
         }
@@ -97,6 +99,8 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         if !self.database.path().exists() {
             std::fs::create_dir_all(self.database.path())?;
         }
+
+        log::debug!("Creating CodeQL Database: {:?}", args);
 
         self.codeql.run(args).await?;
 
@@ -123,15 +127,11 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
 
         path
     }
+
     /// Analyze the database
     pub async fn analyze(&self) -> Result<Sarif, GHASError> {
-        let args = self.analyze_cmd()?;
+        log::debug!("Analyzing CodeQL Database: {:?}", self.database);
 
-        self.codeql.run(args).await?;
-        Sarif::try_from(self.output.clone())
-    }
-
-    pub(crate) fn analyze_cmd(&self) -> Result<Vec<&str>, GHASError> {
         let mut args = vec!["database", "analyze"];
 
         // Output and Format
@@ -144,10 +144,27 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         }
         args.extend(vec!["--format", self.output_format.as_str()]);
 
+        // Search Paths
+        let search_paths = self.codeql.search_paths();
+        if !search_paths.is_empty() {
+            args.push("--search-path");
+            args.push(&search_paths);
+        }
+
         // Add the path to the database
         let path = self.database.path.to_str().expect("Invalid Database Path");
         args.push(path);
 
-        Ok(args)
+        // Add the queries
+        let queries = self.queries.to_string();
+        args.push(queries.as_str());
+
+        log::debug!("Analyzing CodeQL Command :: {:?}", args);
+
+        self.codeql.run(args).await?;
+
+        log::debug!("CodeQL Database Analysis Complete");
+        log::debug!("Output Path: {:?}", self.output);
+        Sarif::try_from(self.output.clone())
     }
 }
