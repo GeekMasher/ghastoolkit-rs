@@ -1,9 +1,8 @@
+use log::debug;
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
 };
-
-use log::debug;
 
 use crate::{
     CodeQLDatabase, GHASError,
@@ -60,6 +59,12 @@ impl CodeQL {
         &self.path
     }
 
+    /// Set the CodeQL CLI path
+    pub(crate) fn set_path(&mut self, path: PathBuf) {
+        log::trace!("Setting CodeQL path to {:?}", path);
+        self.path = path;
+    }
+
     /// Initialize a new CodeQL Builder instance
     pub fn init() -> CodeQLBuilder {
         CodeQLBuilder::default()
@@ -84,6 +89,11 @@ impl CodeQL {
         }
     }
 
+    /// Append a search path to the CodeQL CLI
+    pub fn append_search_path(&mut self, path: impl Into<PathBuf>) {
+        self.search_path.push(path.into());
+    }
+
     /// Add the additional packs to the CodeQL CLI arguments
     pub(crate) fn add_additional_packs(&self, args: &mut Vec<String>) {
         if !self.additional_packs.is_empty() {
@@ -94,9 +104,6 @@ impl CodeQL {
 
     /// Find CodeQL CLI on the system (asynchronous)
     pub async fn find_codeql() -> Option<PathBuf> {
-        if let Some(p) = CodeQL::find_codeql_path() {
-            return Some(p);
-        }
         // Root CodeQL Paths
         if let Some(e) = std::env::var_os("CODEQL_PATH") {
             let p = PathBuf::from(e).join("codeql");
@@ -109,12 +116,16 @@ impl CodeQL {
                 return Some(p);
             }
         }
-
         #[cfg(feature = "toolcache")]
         {
             if let Some(t) = CodeQL::find_codeql_toolcache().await {
+                log::debug!("Found CodeQL in toolcache: {:?}", t);
                 return Some(t);
             }
+        }
+        if let Some(p) = CodeQL::find_codeql_path() {
+            log::debug!("Found CodeQL in PATH: {:?}", p);
+            return Some(p);
         }
 
         None
@@ -150,8 +161,14 @@ impl CodeQL {
     #[cfg(feature = "toolcache")]
     async fn find_codeql_toolcache() -> Option<PathBuf> {
         let toolcache = ghactions::ToolCache::new();
-        if let Ok(tool) = toolcache.find("CodeQL", "2.x").await {
-            return Some(tool.path().clone());
+        if let Ok(tool) = toolcache.find("CodeQL", "latest").await {
+            let tool = tool.path();
+            // TODO: This needs to be better
+            if tool.join("codeql").is_file() {
+                return Some(tool.join("codeql"));
+            } else if tool.join("codeql").is_dir() && tool.join("codeql").join("codeql").is_file() {
+                return Some(tool.join("codeql").join("codeql"));
+            }
         }
         None
     }
@@ -190,8 +207,14 @@ impl CodeQL {
         self.version.clone()
     }
 
+    /// Check to see if the CodeQL CLI is installed
+    pub async fn is_installed(&self) -> bool {
+        Self::get_version(&self.path).await.is_ok()
+    }
+
     /// Get the version of the CodeQL CLI
     pub async fn get_version(path: &Path) -> Result<String, GHASError> {
+        log::debug!("CodeQL.get_version path :: {:?}", path);
         let output = tokio::process::Command::new(path)
             .args(["version", "--format", "terse"])
             .output()
@@ -378,6 +401,7 @@ impl CodeQLBuilder {
                 None => PathBuf::new(),
             },
         };
+        log::debug!("CodeQL CLI path: {:?}", path);
 
         let version: Option<String> = CodeQL::get_version(&path).await.ok();
 

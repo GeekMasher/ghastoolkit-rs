@@ -80,6 +80,8 @@ pub mod cli;
 pub mod database;
 /// This module contains the codeql databases struct and its methods
 pub mod databases;
+#[cfg(feature = "toolcache")]
+pub mod download;
 pub mod extractors;
 /// This module contains the codeql language struct and its methods
 pub mod languages;
