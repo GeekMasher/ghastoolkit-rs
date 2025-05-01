@@ -3,7 +3,7 @@ resolver = "2"
 members = ["core", "cli"]
 
 [workspace.package]
-version = "0.7.2"
+version = "0.8.0"
 license = "MIT"
 description = "GitHub Advanced Security Toolkit in Rust"
 keywords = ["github", "security", "ghas"]

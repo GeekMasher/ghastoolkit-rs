@@ -1,6 +1,6 @@
 name: "ghastoolkit"
 repository: "geekmasher/ghastoolkit"
-version: "0.7.2"
+version: "0.8.0"
 
 ecosystems:
   - Docs
