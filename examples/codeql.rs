@@ -3,10 +3,6 @@ use ghastoolkit::{CodeQL, GitHub, Repository};
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    env_logger::builder()
-        .filter_level(log::LevelFilter::Debug)
-        .init();
-
     let github = GitHub::default();
     let repo = Repository::parse("GeekMasher/ghastoolkit-rs").expect("Failed to parse repository");
     println!("Repository :: {:#?}", repo);
@@ -19,6 +15,7 @@ async fn main() -> Result<()> {
 
         println!("CodeQL CLI downloaded successfully");
     }
+    println!("CodeQL {:?}", codeql);
 
     Ok(())
 }
