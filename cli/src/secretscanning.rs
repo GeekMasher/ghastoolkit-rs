@@ -1,5 +1,5 @@
 use anyhow::Result;
-use ghastoolkit::{secretscanning::secretalerts::SecretScanningSort, GitHub, Repository};
+use ghastoolkit::{GitHub, Repository, secretscanning::secretalerts::SecretScanningSort};
 
 use crate::cli::ArgumentCommands;
 

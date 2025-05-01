@@ -2,7 +2,7 @@ use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use purl::GenericPurl;
 
-use crate::{supplychain::licenses::Licenses, Repository};
+use crate::{Repository, supplychain::licenses::Licenses};
 
 /// Supply Chain Dependency struct used to represent a dependency in a supply chain.
 ///

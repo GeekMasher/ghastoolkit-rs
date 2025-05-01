@@ -1,6 +1,6 @@
 use crate::{
-    supplychain::{License, Licenses},
     Dependency,
+    supplychain::{License, Licenses},
 };
 
 /// List of Dependencies
@@ -107,7 +107,7 @@ impl Dependencies {
 
 #[cfg(test)]
 mod tests {
-    use crate::{supplychain::License, Dependencies, Dependency};
+    use crate::{Dependencies, Dependency, supplychain::License};
 
     #[test]
     fn test_find_by_name() {

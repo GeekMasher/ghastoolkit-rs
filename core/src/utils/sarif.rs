@@ -42,7 +42,9 @@ impl Sarif {
     /// Create a new SARIF object
     pub fn new() -> Self {
         Sarif {
-            schema: String::from("https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json"),
+            schema: String::from(
+                "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            ),
             version: String::from("2.1.0"),
             runs: vec![],
         }
