@@ -31,6 +31,9 @@ pub struct CodeQL {
     search_path: Vec<PathBuf>,
     /// Additional packs to use
     additional_packs: Vec<String>,
+
+    /// Shows the output of the command
+    showoutput: bool,
 }
 
 impl CodeQL {
@@ -52,6 +55,7 @@ impl CodeQL {
             ram: None,
             search_path: Vec::new(),
             additional_packs: Vec::new(),
+            showoutput: true,
         }
     }
 
@@ -163,6 +167,13 @@ impl CodeQL {
         let mut cmd = tokio::process::Command::new(&self.path);
         cmd.args(args);
 
+        if self.showoutput {
+            cmd.stdout(std::process::Stdio::inherit())
+                .stderr(std::process::Stdio::inherit());
+        } else {
+            cmd.stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::piped());
+        };
         let output = cmd.output().await?;
 
         if output.status.success() {
@@ -293,6 +304,7 @@ impl Default for CodeQL {
             ram: None,
             search_path: Vec::new(),
             additional_packs: Vec::new(),
+            showoutput: true,
         }
     }
 }
@@ -307,6 +319,7 @@ pub struct CodeQLBuilder {
 
     search_paths: Vec<PathBuf>,
     additional_packs: Vec<String>,
+    showoutput: bool,
 }
 
 impl CodeQLBuilder {
@@ -369,6 +382,12 @@ impl CodeQLBuilder {
         self
     }
 
+    /// Set the show output flag for the CodeQL CLI
+    pub fn show_output(mut self, show: bool) -> Self {
+        self.showoutput = show;
+        self
+    }
+
     /// Build the CodeQL instance
     pub async fn build(&self) -> Result<CodeQL, GHASError> {
         let path: PathBuf = match self.path {
@@ -388,6 +407,7 @@ impl CodeQLBuilder {
             ram: self.ram.into(),
             additional_packs: self.additional_packs.clone(),
             search_path: self.search_paths.clone(),
+            showoutput: self.showoutput,
         })
     }
 }
