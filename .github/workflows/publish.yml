@@ -19,13 +19,25 @@ jobs:
 
       - name: "Check crates.io"
         id: crates-check
+        env:
+          CRATE_NAME: ghastoolkit
         run: |
           set -e
 
-          CARGO_LOCATION="./core/Cargo.toml"
-          CRATE_NAME="ghastoolkit"
-          # TODO: Auto detect name
-          current_version=$(grep -oP '^version = "(.*)"$' $CARGO_LOCATION | cut -d '"' -f 2)
+          if [[ -f .release.yml ]]; then
+            pip install yq > /dev/null
+            current_version=$(yq -r ".version" .release.yml)
+            echo "💻 Current Version :: $current_version"  
+            echo "version=$current_version" >> $GITHUB_OUTPUT
+          elif [[ -f Cargo.toml ]]; then
+            current_version=$(grep "version =" Cargo.toml | cut -d '"' -f 2)
+            echo "💻 Current Version :: $current_version"
+            echo "version=$current_version" >> $GITHUB_OUTPUT
+          else
+            echo "Failed to find version..."
+            exit 1
+          fi
+
           crates_remote=$(curl -s https://crates.io/api/v1/crates/$CRATE_NAME/versions | jq -r '.versions[0].num')
 
           echo "💻 Current version   :: $current_version"
@@ -33,7 +45,6 @@ jobs:
 
           if [ "$current_version" != "$crates_remote" ]; then
             echo "🚀 The crate is outdated... Let's update it!"
-            echo "version=$current_version" >> $GITHUB_OUTPUT
             echo "outdated=true" >> $GITHUB_OUTPUT
           else
             echo "🍹 Crate is up to date. Lets sit back and relax..."
@@ -65,11 +76,12 @@ jobs:
           cargo test --workspace
           
       - name: "Publish"
+        env:
+          INPUT: ghastoolkit,ghastoolkit-cli
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CRATES_TOKEN }}
         run: |
           set -e
-          cargo login ${{ secrets.CRATES_TOKEN }}
 
-          INPUT="ghastoolkit,ghastoolkit-cli"
           IFS=',' read -r -a elements <<< "$INPUT"
           for element in "${elements[@]}"
           do
@@ -79,16 +91,18 @@ jobs:
 
       - name: "GitHub Release"
         env:
+          VERSION: ${{ needs.cargo-check.outputs.version }}
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
           git config user.name github-actions
           git config user.email github-actions@github.com
 
-          git tag "${{ needs.cargo-check.outputs.version }}" --force
+          git tag "${VERSION}" --force
           git push origin ${{ github.ref_name }}
           git push origin --tags --force
 
           gh release create --latest --generate-notes \
-            --title "v${{ needs.cargo-check.outputs.version }}" \
-            "${{ needs.cargo-check.outputs.version }}"
+            --title "v${VERSION}" \
+            "${VERSION}"
 
