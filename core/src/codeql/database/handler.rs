@@ -51,6 +51,14 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         self
     }
 
+    /// SARIF Output
+    /// Sets the output to the default SARIF output path
+    pub fn sarif(mut self, output: impl Into<PathBuf>) -> Self {
+        self.output = output.into();
+        self.output_format = String::from("sarif-latest");
+        self
+    }
+
     /// Set the queries / packs / suites to use for the analysis
     pub fn queries(mut self, queries: CodeQLQueries) -> Self {
         self.queries = queries;

@@ -3,6 +3,7 @@ use std::{
     fmt::Display,
     path::{Path, PathBuf},
 };
+use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::{
     CodeQLDatabase, GHASError,
@@ -179,31 +180,49 @@ impl CodeQL {
 
     /// Run a CodeQL command asynchronously
     pub async fn run(&self, args: Vec<&str>) -> Result<String, GHASError> {
-        debug!("CodeQL.run args :: {:?}", args);
+        debug!("CodeQL::run({:?})", args);
 
-        let mut cmd = tokio::process::Command::new(&self.path);
-        cmd.args(args);
+        let mut cmd = tokio::process::Command::new(&self.path)
+            .args(args)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::inherit())
+            .spawn()?;
 
-        if self.showoutput {
-            cmd.stdout(std::process::Stdio::inherit())
-                .stderr(std::process::Stdio::inherit());
-        } else {
-            cmd.stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::piped());
-        };
-        let output = cmd.output().await?;
+        let stdout = cmd.stdout.take().ok_or(GHASError::CodeQLError(
+            "Failed to get stdout from CodeQL command".to_string(),
+        ))?;
 
-        if output.status.success() {
-            debug!("CodeQL Command Success: {:?}", output.status.to_string());
-            Ok(String::from_utf8_lossy(&output.stdout)
-                .to_string()
-                .trim()
-                .to_string())
+        let reader = BufReader::new(stdout);
+        let mut lines = reader.lines();
+
+        let mut output_lines = Vec::new();
+
+        while let Some(line) = lines.next_line().await? {
+            if self.showoutput {
+                println!("{}", line); // print live
+            }
+            output_lines.push(line); // store for later
+        }
+
+        let status = cmd.wait().await?;
+
+        if status.success() {
+            debug!("CodeQL Command Success: {:?}", status.to_string());
+            Ok(output_lines.join("\n"))
         } else {
             Err(GHASError::CodeQLError(
-                String::from_utf8_lossy(&output.stderr).to_string(),
+                "Error running CodeQL command".to_string(),
             ))
         }
+    }
+
+    /// Run a CodeQL command without showing the output
+    ///
+    /// This is an internal function and should not be used directly.
+    pub(crate) async fn rn(&self, args: Vec<&str>) -> Result<String, GHASError> {
+        let mut codeql = self.clone();
+        codeql.showoutput = false;
+        codeql.run(args).await
     }
 
     /// Pass a CodeQLDatabase to the CodeQL CLI to return a CodeQLDatabaseHandler.
@@ -289,7 +308,7 @@ impl CodeQL {
 
         log::debug!("CodeQL.get_all_languages args :: {:?}", args);
 
-        match self.run(args).await {
+        match self.rn(args).await {
             Ok(v) => {
                 let languages: ResolvedLanguages = serde_json::from_str(&v)?;
                 let mut result = Vec::new();
