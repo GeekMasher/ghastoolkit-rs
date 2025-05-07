@@ -40,7 +40,6 @@ jobs:
 
           crates_remote=$(curl -s https://crates.io/api/v1/crates/$CRATE_NAME/versions | jq -r '.versions[0].num')
 
-          echo "💻 Current version   :: $current_version"
           echo "🦀 Crates.io version :: $crates_remote"
 
           if [ "$current_version" != "$crates_remote" ]; then
