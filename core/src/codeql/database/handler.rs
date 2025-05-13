@@ -242,10 +242,6 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         if self.overwrite {
             args.push("--overwrite");
         }
-        if self.summary {
-            args.push("--print-diagnostics-summary");
-            args.push("--print-metrics-summary");
-        }
         if let Some(category) = &self.category {
             args.push("--sarif-category");
             args.push(&category);
@@ -313,6 +309,11 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
             args.push("--search-path");
             args.push(&search_paths);
         }
+        // Summary
+        if self.summary {
+            args.push("--print-diagnostics-summary");
+            args.push("--print-metrics-summary");
+        }
 
         // Add the path to the database
         let path = self.database.path.to_str().expect("Invalid Database Path");
@@ -350,7 +351,7 @@ mod tests {
             .create_cmd()
             .unwrap();
 
-        assert_eq!(cmd.len(), 9);
+        assert_eq!(cmd.len(), 7);
         assert_eq!(cmd[0], "database");
         assert_eq!(cmd[1], "create");
         assert_eq!(cmd[2], "-l");
@@ -358,9 +359,7 @@ mod tests {
         assert_eq!(cmd[4], "-s");
         assert_eq!(cmd[5], "/path/to/source");
         // Summary enabled by default
-        assert_eq!(cmd[6], "--print-diagnostics-summary");
-        assert_eq!(cmd[7], "--print-metrics-summary");
-        assert_eq!(cmd[8], database.path().to_str().unwrap());
+        assert_eq!(cmd[6], database.path().to_str().unwrap());
     }
 
     #[test]
@@ -371,7 +370,7 @@ mod tests {
             .create_cmd()
             .unwrap();
 
-        assert_eq!(cmd.len(), 11);
+        assert_eq!(cmd.len(), 9);
         assert_eq!(cmd[6], "--threat-models");
         assert_eq!(cmd[7], "test");
 
@@ -380,7 +379,7 @@ mod tests {
             .create_cmd()
             .unwrap();
 
-        assert_eq!(cmd.len(), 11);
+        assert_eq!(cmd.len(), 9);
         assert_eq!(cmd[6], "--threat-models");
         assert_eq!(cmd[7], "test,test2");
 
@@ -388,7 +387,7 @@ mod tests {
             .disable_default_threat_model()
             .create_cmd()
             .unwrap();
-        assert_eq!(cmd.len(), 11);
+        assert_eq!(cmd.len(), 9);
         assert_eq!(cmd[6], "--threat-models");
         assert_eq!(cmd[7], "!default");
     }
@@ -401,7 +400,7 @@ mod tests {
             .create_cmd()
             .unwrap();
 
-        assert_eq!(cmd.len(), 11);
+        assert_eq!(cmd.len(), 9);
         assert_eq!(cmd[6], "--model-packs");
         assert_eq!(cmd[7], "test,test2");
     }
@@ -414,14 +413,17 @@ mod tests {
             .analyze_cmd()
             .unwrap();
 
-        assert_eq!(cmd.len(), 8);
+        assert_eq!(cmd.len(), 10);
         assert_eq!(cmd[0], "database");
         assert_eq!(cmd[1], "analyze");
         assert_eq!(cmd[2], "--output");
         assert_eq!(cmd[3], "test.sarif");
         assert_eq!(cmd[4], "--format");
         assert_eq!(cmd[5], "sarif-latest");
-        assert_eq!(cmd[6], database.path().to_str().unwrap());
+        assert_eq!(cmd[6], "--print-diagnostics-summary");
+        assert_eq!(cmd[7], "--print-metrics-summary");
+        assert_eq!(cmd[8], database.path().to_str().unwrap());
+        assert_eq!(cmd[9], "codeql/javascript-queries");
     }
 
     #[test]
@@ -431,16 +433,16 @@ mod tests {
             .suite("javascript")
             .analyze_cmd()
             .unwrap();
-        assert_eq!(cmd.len(), 8);
-        assert_eq!(cmd[7], "codeql/javascript-queries");
+        assert_eq!(cmd.len(), 10);
+        assert_eq!(cmd[9], "codeql/javascript-queries");
 
         let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
             .suite("security-extended")
             .analyze_cmd()
             .unwrap();
-        assert_eq!(cmd.len(), 8);
+        assert_eq!(cmd.len(), 10);
         assert_eq!(
-            cmd[7],
+            cmd[9],
             "codeql/javascript-queries:codeql-suites/javascript-security-extended.qls"
         );
     }
@@ -452,16 +454,16 @@ mod tests {
             .queries("codeql/javascript-queries@0.9.0")
             .analyze_cmd()
             .unwrap();
-        assert_eq!(cmd.len(), 8);
-        assert_eq!(cmd[7], "codeql/javascript-queries@0.9.0");
+        assert_eq!(cmd.len(), 10);
+        assert_eq!(cmd[9], "codeql/javascript-queries@0.9.0");
 
         let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
             .queries("codeql/javascript-queries@0.9.0:codeql-suites/javascript-code-scanning.qls")
             .analyze_cmd()
             .unwrap();
-        assert_eq!(cmd.len(), 8);
+        assert_eq!(cmd.len(), 10);
         assert_eq!(
-            cmd[7],
+            cmd[9],
             "codeql/javascript-queries@0.9.0:codeql-suites/javascript-code-scanning.qls"
         );
     }
