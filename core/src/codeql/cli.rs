@@ -8,12 +8,13 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use crate::{
     CodeQLDatabase, GHASError,
     codeql::{CodeQLLanguage, database::handler::CodeQLDatabaseHandler},
+    utils::sarif::Sarif,
 };
 
 pub mod builder;
 mod models;
 
-use super::{CodeQLExtractor, languages::CodeQLLanguages};
+use super::{CodeQLExtractor, database::queries::CodeQLQueries, languages::CodeQLLanguages};
 pub use builder::CodeQLBuilder;
 use models::ResolvedLanguages;
 
@@ -237,6 +238,56 @@ impl CodeQL {
     #[allow(elided_named_lifetimes)]
     pub fn database<'a>(&'a self, db: &'a CodeQLDatabase) -> CodeQLDatabaseHandler {
         CodeQLDatabaseHandler::new(db, self)
+    }
+
+    /// An async function to run a CodeQL scan on a database.
+    ///
+    /// This includes the following steps:
+    /// - Creating the database
+    /// - Running the analysis
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use ghastoolkit::codeql::{CodeQL, CodeQLDatabase};
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let codeql = CodeQL::new().await;
+    ///
+    /// let mut db = CodeQLDatabase::init()
+    ///     .source("./")
+    ///     .language("python")
+    ///     .build()
+    ///     .expect("Failed to create database");
+    ///
+    /// let sarif = codeql.scan(&mut db, "codeql/python-queries").await
+    ///     .expect("Failed to run scan");
+    /// // ... do something with the sarif
+    /// # }
+    /// ``
+    pub async fn scan<'a>(
+        &'a self,
+        db: &'a mut CodeQLDatabase,
+        queries: impl Into<CodeQLQueries>,
+    ) -> Result<Sarif, GHASError> {
+        self.database(db).overwrite().create().await?;
+
+        let sarif = db.path().join("results.sarif");
+        self.database(db)
+            .sarif(sarif.clone())
+            .queries(queries)
+            .analyze()
+            .await?;
+
+        db.reload()?;
+
+        self.sarif(sarif)
+    }
+
+    /// Get the SARIF file from the CodeQL CLI
+    pub fn sarif(&self, path: impl Into<PathBuf>) -> Result<Sarif, GHASError> {
+        Ok(Sarif::try_from(path.into())?)
     }
 
     /// Get the version of the loaded CodeQL CLI
