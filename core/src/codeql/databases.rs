@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+//! # CodeQL Databases
 
 use log::debug;
+use std::path::PathBuf;
 use walkdir::WalkDir;
 
 use crate::codeql::database::CodeQLDatabase;

@@ -1,3 +1,5 @@
+//! # CodeQL CLI Wrapper
+
 use log::debug;
 use std::{
     fmt::Display,
@@ -265,7 +267,7 @@ impl CodeQL {
     ///     .expect("Failed to run scan");
     /// // ... do something with the sarif
     /// # }
-    /// ``
+    /// ```
     pub async fn scan<'a>(
         &'a self,
         db: &'a mut CodeQLDatabase,

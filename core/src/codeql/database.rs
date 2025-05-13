@@ -1,3 +1,5 @@
+//! # CodeQL Database
+//!
 //! This module defines the CodeQL Database.
 //! This structure is used to interact with CodeQL databases.
 //! It provides methods to validate, build, and handle databases.
@@ -13,11 +15,8 @@ use crate::{
     codeql::{CodeQLLanguage, database::config::CodeQLDatabaseConfig},
 };
 
-/// CodeQL Database Configuration file
 pub mod config;
-/// CodeQL Database Handler
 pub mod handler;
-/// CodeQL Queries
 pub mod queries;
 
 /// CodeQL Database

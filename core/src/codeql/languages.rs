@@ -1,3 +1,4 @@
+//! # CodeQL Languages
 use std::fmt::{Debug, Display};
 use std::path::PathBuf;
 

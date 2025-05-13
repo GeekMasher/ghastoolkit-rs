@@ -1,4 +1,7 @@
 //! # CodeQL CLI Download
+//!
+//! The `CodeQL` struct provides methods to download the CodeQL CLI from GitHub
+//! using the GitHub Actions Tool Cache.
 
 use super::CodeQL;
 use crate::GHASError;

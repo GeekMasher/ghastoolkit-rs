@@ -1,3 +1,4 @@
+//! # CodeQL Database Handler
 use std::path::PathBuf;
 
 use crate::{
