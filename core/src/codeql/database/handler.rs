@@ -241,7 +241,7 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
     pub async fn analyze(&self) -> Result<(), GHASError> {
         log::debug!("Analyzing CodeQL Database: {:?}", self.database);
 
-        let mut args = self.analyze_cmd()?;
+        let args = self.analyze_cmd()?;
 
         log::debug!("Analyzing CodeQL Command :: {:?}", args);
 
@@ -362,5 +362,35 @@ mod tests {
         assert_eq!(cmd.len(), 11);
         assert_eq!(cmd[6], "--model-packs");
         assert_eq!(cmd[7], "test,test2");
+    }
+
+    #[test]
+    fn test_codeql_analysis() {
+        let (codeql, database) = init_codeql();
+        let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
+            .sarif("test.sarif")
+            .analyze_cmd()
+            .unwrap();
+
+        assert_eq!(cmd.len(), 8);
+        assert_eq!(cmd[0], "database");
+        assert_eq!(cmd[1], "analyze");
+        assert_eq!(cmd[2], "--output");
+        assert_eq!(cmd[3], "test.sarif");
+        assert_eq!(cmd[4], "--format");
+        assert_eq!(cmd[5], "sarif-latest");
+        assert_eq!(cmd[6], database.path().to_str().unwrap());
+    }
+
+    #[test]
+    fn test_codeql_analysis_queries() {
+        let (codeql, database) = init_codeql();
+        let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
+            .queries("javascript")
+            .analyze_cmd()
+            .unwrap();
+
+        assert_eq!(cmd.len(), 8);
+        assert_eq!(cmd[7], "codeql/javascript-queries");
     }
 }

@@ -3,6 +3,7 @@
 //! This module defines the CodeQL Database.
 //! This structure is used to interact with CodeQL databases.
 //! It provides methods to validate, build, and handle databases.
+
 use std::{
     fmt::Display,
     path::{Path, PathBuf},
@@ -364,7 +365,7 @@ impl CodeQLDatabaseBuilder {
 
     /// Set the language of the database
     ///
-    /// **Exmample:**
+    /// **Examples:**
     ///
     /// ```rust
     /// use ghastoolkit::CodeQLDatabase;

@@ -25,7 +25,7 @@ impl CodeQLBuilder {
     /// Set the path to the CodeQL CLI
     ///
     /// ```rust
-    /// use ghastoolkit::codeql::cli::CodeQL;
+    /// use ghastoolkit::CodeQL;
     ///
     /// # #[tokio::main]
     /// # async fn main() {
