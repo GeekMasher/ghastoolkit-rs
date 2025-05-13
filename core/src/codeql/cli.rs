@@ -16,7 +16,7 @@ use crate::{
 pub mod builder;
 mod models;
 
-use super::{CodeQLExtractor, database::queries::CodeQLQueries, languages::CodeQLLanguages};
+use super::{CodeQLExtractor, languages::CodeQLLanguages};
 pub use builder::CodeQLBuilder;
 use models::ResolvedLanguages;
 
@@ -271,14 +271,14 @@ impl CodeQL {
     pub async fn scan<'a>(
         &'a self,
         db: &'a mut CodeQLDatabase,
-        queries: impl Into<CodeQLQueries>,
+        queries: impl Into<String>,
     ) -> Result<Sarif, GHASError> {
         self.database(db).overwrite().create().await?;
 
         let sarif = db.path().join("results.sarif");
         self.database(db)
             .sarif(sarif.clone())
-            .queries(queries)
+            .queries(queries.into())
             .analyze()
             .await?;
 
