@@ -1,6 +1,7 @@
-use std::path::PathBuf;
+//! # CodeQL Database Configuration
 
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 
 use crate::GHASError;
 

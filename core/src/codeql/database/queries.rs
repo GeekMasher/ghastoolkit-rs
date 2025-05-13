@@ -1,3 +1,5 @@
+//! # CodeQL Queries
+
 use std::path::PathBuf;
 
 /// A collection of CodeQL Queries
