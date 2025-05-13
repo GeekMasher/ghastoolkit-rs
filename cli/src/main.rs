@@ -122,8 +122,8 @@ async fn main() -> Result<()> {
                 };
 
                 let mut database = CodeQLDatabase::init()
-                    .source(tempdir.display().to_string())
-                    .language(language.to_string())
+                    .source(tempdir)
+                    .language(language.clone())
                     .repository(&repository)
                     .build()?;
 
@@ -141,12 +141,17 @@ async fn main() -> Result<()> {
 
                 let queries = CodeQLQueries::language_default(language.language());
 
+                let sarif = database.path().join("results.sarif");
+                info!("Results :: {:?}", &sarif);
+
                 info!("Analyzing database :: {}", database);
-                let results = codeql
+                codeql
                     .database(&database)
                     .queries(queries)
                     .analyze()
                     .await?;
+
+                let results = codeql.sarif(sarif)?;
 
                 info!("Results :: {:?}", results.get_results().len());
                 for result in results.get_results() {
