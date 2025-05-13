@@ -120,3 +120,9 @@ pub struct CodeQLExtractorFileType {
     /// File Extensions
     pub extensions: Vec<String>,
 }
+
+impl From<PathBuf> for CodeQLExtractor {
+    fn from(path: PathBuf) -> Self {
+        CodeQLExtractor::load_path(path).unwrap_or_default()
+    }
+}

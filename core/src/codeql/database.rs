@@ -266,18 +266,52 @@ pub struct CodeQLDatabaseBuilder {
 
 impl CodeQLDatabaseBuilder {
     /// Set the name of the database
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// use ghastoolkit::CodeQLDatabase;
+    ///
+    /// let database = CodeQLDatabase::init()
+    ///     .name("test")
+    ///     .path("/path/to/database")
+    ///     .language("javascript")
+    ///     .build()
+    ///     .unwrap();
+    /// ```
     pub fn name(mut self, name: impl Into<String>) -> Self {
         self.name = name.into();
         self
     }
 
-    /// Set the path to the database
-    pub fn path(mut self, path: String) -> Self {
-        if !path.is_empty() {
-            self.path = Some(PathBuf::from(&path));
+    /// Set the path to the database. If there is an existing database, it will load the configuration
+    /// file from the path.
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// use ghastoolkit::CodeQLDatabase;
+    ///
+    /// let database = CodeQLDatabase::init()
+    ///     .name("test")
+    ///     .path("/path/to/database")
+    ///     .build()
+    ///     .unwrap();
+    /// ```
+    pub fn path(mut self, path: impl Into<PathBuf>) -> Self {
+        let path = path.into();
+        self.path = Some(path.clone());
 
-            let mut config_path = PathBuf::from(&path);
-            config_path.push("codeql-database.yml");
+        if path.exists() {
+            let config_path = if path.is_dir() {
+                path.join("codeql-database.yml")
+            } else if path.is_file() {
+                path.clone()
+            } else {
+                log::warn!("Unknown path type: {:?}", path);
+                return self;
+            };
+
             debug!("Loading database configuration: {:?}", &config_path);
 
             let config = match CodeQLDatabaseConfig::read(&config_path) {
@@ -298,28 +332,52 @@ impl CodeQLDatabaseBuilder {
     }
 
     /// Set the source root for database creation / mapping
-    pub fn source(mut self, source: String) -> Self {
-        if !source.is_empty() {
-            self.source = Some(PathBuf::from(source));
-            if self.name.is_empty() {
-                // TODO(geekmasher): This is a bit of a hack, but it works for now
-                self.name = self
-                    .source
-                    .clone()
-                    .unwrap()
-                    .file_name()
-                    .unwrap()
-                    .to_str()
-                    .unwrap()
-                    .to_string();
-            }
+    ///
+    /// **Example:**
+    ///
+    /// ```rust
+    /// use ghastoolkit::CodeQLDatabase;
+    ///
+    /// let database = CodeQLDatabase::init()
+    ///     .name("test")
+    ///     .source("./src")
+    ///     .build()
+    ///     .unwrap();
+    /// ```
+    pub fn source(mut self, source: impl Into<PathBuf>) -> Self {
+        let source = source.into();
+        self.source = Some(PathBuf::from(source));
+
+        if self.name.is_empty() {
+            // TODO(geekmasher): This is a bit of a hack, but it works for now
+            self.name = self
+                .source
+                .clone()
+                .unwrap()
+                .file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string();
         }
         self
     }
 
     /// Set the language of the database
-    pub fn language(mut self, language: impl Into<String>) -> Self {
-        self.language = CodeQLLanguage::from(language.into());
+    ///
+    /// **Exmample:**
+    ///
+    /// ```rust
+    /// use ghastoolkit::CodeQLDatabase;
+    ///
+    /// let database = CodeQLDatabase::init()
+    ///     .name("test")
+    ///     .language("javascript")
+    ///     .build()
+    ///     .unwrap();
+    /// ```
+    pub fn language(mut self, language: impl Into<CodeQLLanguage>) -> Self {
+        self.language = language.into();
         self
     }
 
