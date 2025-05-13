@@ -23,6 +23,19 @@ impl CodeQLQueries {
             ..Default::default()
         }
     }
+
+    /// Get the suite path
+    pub fn suite(&self) -> Option<String> {
+        if let Some(path) = &self.path {
+            return Some(path.display().to_string());
+        }
+        None
+    }
+
+    /// Set a suite path
+    pub fn set_path(&mut self, path: impl Into<PathBuf>) {
+        self.path = Some(path.into());
+    }
 }
 
 impl ToString for CodeQLQueries {

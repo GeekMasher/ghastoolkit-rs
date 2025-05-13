@@ -88,6 +88,48 @@ impl<'db, 'ql> CodeQLDatabaseHandler<'db, 'ql> {
         self
     }
 
+    /// Set the query pack and suite to use for the analysis
+    pub fn suite(mut self, queries: impl Into<String>) -> Self {
+        let queries: String = queries.into();
+
+        match queries.as_str() {
+            "security-extended" => {
+                self.queries = CodeQLQueries::language_default(self.database.language.language());
+                self.queries.set_path(format!(
+                    "codeql-suites/{}-security-extended.qls",
+                    self.database.language.language()
+                ));
+            }
+            "security-and-quality" => {
+                self.queries = CodeQLQueries::language_default(self.database.language.language());
+                self.queries.set_path(format!(
+                    "codeql-suites/{}-security-and-quality.qls",
+                    self.database.language.language()
+                ));
+            }
+            "experimental" => {
+                self.queries = CodeQLQueries::language_default(self.database.language.language());
+                self.queries.set_path(format!(
+                    "codeql-suites/{}-experimental.qls",
+                    self.database.language.language()
+                ));
+            }
+            "default" | "code-scanning" => {
+                self.queries = CodeQLQueries::language_default(self.database.language.language());
+                self.queries.set_path(format!(
+                    "codeql-suites/{}-code-scanning.qls",
+                    self.database.language.language()
+                ));
+            }
+            _ => {
+                self.queries = CodeQLQueries::from(queries.clone());
+            }
+        }
+
+        log::trace!("Setting queries: {:?}", self.queries);
+        self
+    }
+
     /// Set a Threat Model for the analysis
     pub fn threat_model(mut self, threat_model: impl Into<String>) -> Self {
         self.threat_models.push(threat_model.into());
@@ -383,14 +425,44 @@ mod tests {
     }
 
     #[test]
+    fn test_codeql_analysis_suites() {
+        let (codeql, database) = init_codeql();
+        let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
+            .suite("javascript")
+            .analyze_cmd()
+            .unwrap();
+        assert_eq!(cmd.len(), 8);
+        assert_eq!(cmd[7], "codeql/javascript-queries");
+
+        let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
+            .suite("security-extended")
+            .analyze_cmd()
+            .unwrap();
+        assert_eq!(cmd.len(), 8);
+        assert_eq!(
+            cmd[7],
+            "codeql/javascript-queries:codeql-suites/javascript-security-extended.qls"
+        );
+    }
+
+    #[test]
     fn test_codeql_analysis_queries() {
         let (codeql, database) = init_codeql();
         let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
-            .queries("javascript")
+            .queries("codeql/javascript-queries@0.9.0")
             .analyze_cmd()
             .unwrap();
-
         assert_eq!(cmd.len(), 8);
-        assert_eq!(cmd[7], "codeql/javascript-queries");
+        assert_eq!(cmd[7], "codeql/javascript-queries@0.9.0");
+
+        let cmd = CodeQLDatabaseHandler::new(&database, &codeql)
+            .queries("codeql/javascript-queries@0.9.0:codeql-suites/javascript-code-scanning.qls")
+            .analyze_cmd()
+            .unwrap();
+        assert_eq!(cmd.len(), 8);
+        assert_eq!(
+            cmd[7],
+            "codeql/javascript-queries@0.9.0:codeql-suites/javascript-code-scanning.qls"
+        );
     }
 }
