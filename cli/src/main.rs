@@ -1,8 +1,5 @@
 use anyhow::Result;
-use ghastoolkit::{
-    CodeQL, CodeQLDatabase, CodeQLDatabases, Repository,
-    codeql::{CodeQLLanguage, database::queries::CodeQLQueries},
-};
+use ghastoolkit::{CodeQL, CodeQLDatabase, CodeQLDatabases, Repository, codeql::CodeQLLanguage};
 use log::{debug, info};
 use secretscanning::secret_scanning;
 use std::env::temp_dir;
@@ -48,6 +45,7 @@ async fn main() -> Result<()> {
             repo,
             languages,
             language,
+            suite,
             download,
             threads,
             ram,
@@ -139,15 +137,13 @@ async fn main() -> Result<()> {
                 // Reload the database after creation
                 database.reload()?;
 
-                let queries = CodeQLQueries::language_default(language.language());
-
                 let sarif = database.path().join("results.sarif");
                 info!("Results :: {:?}", &sarif);
 
                 info!("Analyzing database :: {}", database);
                 codeql
                     .database(&database)
-                    .queries(queries)
+                    .queries(suite.unwrap_or("default".to_string()))
                     .analyze()
                     .await?;
 
