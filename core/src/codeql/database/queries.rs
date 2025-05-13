@@ -2,6 +2,8 @@
 
 use std::path::PathBuf;
 
+use crate::codeql::languages::CODEQL_LANGUAGES;
+
 /// A collection of CodeQL Queries
 /// scope/name@range:path
 #[derive(Debug, Default, Clone)]
@@ -90,7 +92,13 @@ impl From<&str> for CodeQLQueries {
                         name = Some(nm.to_string());
                     }
                 }
-            };
+            } else if CODEQL_LANGUAGES
+                .iter()
+                .find(|lang| lang.0 == value)
+                .is_some()
+            {
+                return Self::language_default(value);
+            }
 
             Self {
                 scope,

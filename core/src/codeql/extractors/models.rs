@@ -121,8 +121,10 @@ pub struct CodeQLExtractorFileType {
     pub extensions: Vec<String>,
 }
 
-impl From<PathBuf> for CodeQLExtractor {
-    fn from(path: PathBuf) -> Self {
-        CodeQLExtractor::load_path(path).unwrap_or_default()
+impl TryFrom<PathBuf> for CodeQLExtractor {
+    type Error = crate::errors::GHASError;
+
+    fn try_from(path: PathBuf) -> Result<Self, Self::Error> {
+        CodeQLExtractor::load_path(path)
     }
 }
