@@ -72,6 +72,10 @@ pub enum GHASError {
     #[error("WalkdirError: {0}")]
     WalkdirError(#[from] walkdir::Error),
 
+    /// Glob Error (glob::PatternError)
+    #[error("GlobError: {0}")]
+    GlobError(#[from] glob::PatternError),
+
     /// Unknown Error
     #[error("UnknownError: {0}")]
     UnknownError(String),
