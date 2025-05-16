@@ -103,28 +103,25 @@ impl CodeQLPack {
     /// codeql pack download <name>
     /// ```
     #[cfg(feature = "async")]
-    pub async fn download(
+    pub async fn download(&self, codeql: &crate::CodeQL) -> Result<(), GHASError> {
+        log::debug!("Downloading CodeQL Pack: {}", self.full_name());
+        codeql
+            .run(vec!["pack", "download", self.full_name().as_str()])
+            .await?;
+        Ok(())
+    }
+
+    /// Download a CodeQL Pack using its name (namespace/name[@version])
+    pub async fn download_pack(
         codeql: &crate::CodeQL,
         name: impl Into<String>,
     ) -> Result<Self, GHASError> {
         let name = name.into();
-        if let Some((namespace, mut packname)) = name.split_once('/') {
-            let version: Option<String> = if let Some((pname, version)) = packname.split_once('@') {
-                packname = pname;
-                Some(version.to_string())
-            } else {
-                None
-            };
+        log::debug!("Downloading CodeQL Pack: {name}");
+        let pack = CodeQLPack::try_from(name.clone())?;
+        pack.download(codeql).await?;
 
-            codeql.run(vec!["pack", "download", name.as_str()]).await?;
-
-            CodeQLPack::try_from(name.as_str())
-        } else {
-            Err(GHASError::CodeQLPackError(format!(
-                "Invalid Pack Name: {}",
-                name
-            )))
-        }
+        Ok(pack)
     }
 
     /// Install the CodeQL Pack Dependencies
@@ -246,8 +243,8 @@ impl CodeQLPack {
         log::trace!("Entries: {:?}", entries);
 
         if let Some(Ok(entry)) = entries.last() {
-            if path.exists() {
-                return Self::load(path);
+            if entry.exists() {
+                return Self::load(entry.clone());
             }
         }
 
@@ -293,7 +290,7 @@ impl TryFrom<&str> for CodeQLPack {
     type Error = GHASError;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let path = PathBuf::from(value.clone());
+        let path = PathBuf::from(value);
 
         if path.exists() {
             Self::load(path.clone())
