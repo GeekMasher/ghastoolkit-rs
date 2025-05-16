@@ -45,7 +45,7 @@ time = "0.3.36"
 zip = "^3.0"
 
 # For CodeQL in ToolCache
-ghactions = { version = "^0.16", features = ["toolcache-all"], optional = true }
+ghactions = { version = "^0.16.1", features = ["toolcache-all"], optional = true }
 
 # Async
 async-trait = { version = "0.1", optional = true }
