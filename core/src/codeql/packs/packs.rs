@@ -1,4 +1,5 @@
 //! CodeQL Packs module
+use std::env::home_dir;
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -29,6 +30,15 @@ impl CodeQLPacks {
         self.packs.append(&mut other.packs);
     }
 
+    /// Get the CodeQL Packages Path
+    pub(crate) fn codeql_packages_path() -> PathBuf {
+        let homedir = home_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .canonicalize()
+            .unwrap_or_else(|_| PathBuf::from("."));
+        homedir.join(".codeql").join("packages")
+    }
+
     /// Load CodeQL Packs from a directory. It will recursively search for `qlpack.yml` files.
     pub fn load(path: impl Into<PathBuf>) -> Result<Self> {
         let path: PathBuf = path.into();
@@ -44,7 +54,7 @@ impl CodeQLPacks {
             }
 
             if entry.file_name() == "qlpack.yml" {
-                let pack = CodeQLPack::new(entry.path());
+                let pack = CodeQLPack::new(entry.path().display().to_string());
                 packs.push(pack);
             }
         }
