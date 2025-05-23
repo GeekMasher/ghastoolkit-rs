@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 use anyhow::{Result, anyhow};
-use dialoguer::{FuzzySelect, theme::ColorfulTheme};
+use dialoguer::{FuzzySelect, MultiSelect, theme::ColorfulTheme};
 use ghastoolkit::codeql::CodeQLLanguage;
 
 pub fn prompt_text(name: &str) -> Result<String> {
@@ -23,7 +23,7 @@ pub fn prompt_select<'a>(name: &'a str, items: &[&'a str]) -> Result<&'a str> {
     Ok(text)
 }
 
-pub fn prompt_languages<'a>(name: &'a str, items: &'a [CodeQLLanguage]) -> Result<CodeQLLanguage> {
+pub fn prompt_language<'a>(name: &'a str, items: &'a [CodeQLLanguage]) -> Result<CodeQLLanguage> {
     let selection = FuzzySelect::with_theme(&ColorfulTheme::default())
         .with_prompt(name)
         .default(0)
@@ -33,4 +33,23 @@ pub fn prompt_languages<'a>(name: &'a str, items: &'a [CodeQLLanguage]) -> Resul
     let text = items.get(selection).ok_or(anyhow!("No item selected"))?;
 
     Ok(text.clone())
+}
+
+/// Prompt and select multiple languages
+pub fn prompt_languages<'a>(
+    name: &'a str,
+    items: &'a [CodeQLLanguage],
+) -> Result<Vec<CodeQLLanguage>> {
+    let selection = MultiSelect::with_theme(&ColorfulTheme::default())
+        .with_prompt(name)
+        .items(items)
+        .interact()?;
+
+    let selected_items: Vec<CodeQLLanguage> = selection
+        .iter()
+        .filter_map(|&i| items.get(i))
+        .cloned()
+        .collect();
+
+    Ok(selected_items)
 }
