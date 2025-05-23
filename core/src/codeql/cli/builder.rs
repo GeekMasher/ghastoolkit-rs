@@ -18,6 +18,7 @@ pub struct CodeQLBuilder {
 
     search_paths: Vec<PathBuf>,
     additional_packs: Vec<String>,
+    suite: Option<String>,
     showoutput: bool,
 }
 
@@ -79,6 +80,12 @@ impl CodeQLBuilder {
         self
     }
 
+    /// Set the default suite for the CodeQL CLI
+    pub fn suite(mut self, suite: String) -> Self {
+        self.suite = Some(suite);
+        self
+    }
+
     /// Set the show output flag for the CodeQL CLI
     pub fn show_output(mut self, show: bool) -> Self {
         self.showoutput = show;
@@ -105,6 +112,7 @@ impl CodeQLBuilder {
             ram: self.ram.into(),
             additional_packs: self.additional_packs.clone(),
             search_path: self.search_paths.clone(),
+            suite: self.suite.clone(),
             showoutput: self.showoutput,
         })
     }

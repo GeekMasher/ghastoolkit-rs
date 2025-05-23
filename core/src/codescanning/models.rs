@@ -125,7 +125,7 @@ pub struct CodeScanningAnalysis {
 }
 
 /// A CodeQL Database
-#[derive(Debug, Clone, Serialize, Deserialize, Hash, Eq, PartialEq)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Hash, Eq, PartialEq)]
 pub struct ListCodeQLDatabase {
     /// ID
     pub id: i32,

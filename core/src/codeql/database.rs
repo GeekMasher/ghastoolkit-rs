@@ -47,9 +47,52 @@ impl CodeQLDatabase {
         CodeQLDatabaseBuilder::default()
     }
 
+    /// Get the database name
+    pub fn name(&self) -> String {
+        if self.name.is_empty() {
+            // Repo
+            if let Some(ref repo) = self.repository {
+                return repo.name().to_string();
+            } else if self.path.exists() {
+                // TODO: This only works for the default path
+                let base = CodeQLDatabases::default_path();
+                let path = self.path.strip_prefix(&base).unwrap_or(&self.path);
+                let components = path.components().collect::<Vec<_>>();
+                if components.len() == 1 {
+                    // If there is only one component, it is the name
+                    return components[0].as_os_str().to_str().unwrap().to_string();
+                } else if components.len() > 1 {
+                    // If there are more than one component, it is the name
+                    return components[1].as_os_str().to_str().unwrap().to_string();
+                }
+            } else if let Some(source) = &self.source {
+                // TODO(geekmasher): This is a bit of a hack, but it works for now
+                return source
+                    .clone()
+                    .file_name()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_string();
+            }
+        }
+        self.name.clone()
+    }
+
     /// Get the database language
     pub fn language(&self) -> &str {
         self.language.language()
+    }
+
+    /// Get the repository the database is associated with
+    pub fn repository(&self) -> Option<&Repository> {
+        self.repository.as_ref()
+    }
+
+    /// Set the repository the database is associated with
+    pub(crate) fn set_repository(&mut self, repository: &Repository) {
+        self.repository = Some(repository.clone());
+        self.name = repository.name().to_string();
     }
 
     /// Get the database path (root directory)
@@ -62,6 +105,16 @@ impl CodeQLDatabase {
         let mut path = self.path.clone();
         path.push("codeql-database.yml");
         path
+    }
+
+    /// Creation time of the database
+    pub fn created_at(&self) -> Option<chrono::DateTime<chrono::Utc>> {
+        if let Some(config) = &self.config {
+            if let Some(metadata) = &config.creation_metadata {
+                return Some(metadata.creation_time);
+            }
+        }
+        None
     }
 
     /// Check if the database is valid (configuration file exists)
@@ -127,6 +180,7 @@ impl CodeQLDatabase {
             debug!("Loading CodeQL Database from: {}", path.display());
             CodeQLDatabase::load_database_config(&path)
         } else {
+            log::debug!("Finding CodeQL Database from: {}", path.display());
             // If the path is a directory, we need to find the configuration file
             let mut dbroot = PathBuf::new();
 
@@ -150,27 +204,10 @@ impl CodeQLDatabase {
         repository: &Repository,
         github: &GitHub,
     ) -> Result<Vec<Self>, GHASError> {
-        let mut databases = Vec::new();
-        let databases_list = github
-            .code_scanning(repository)
-            .list_codeql_databases()
-            .await?;
-        println!("Found {} CodeQL databases", databases_list.len());
-
-        for database in databases_list {
-            let language = CodeQLLanguage::from(database.language);
-            log::debug!("Database Language: {:?}", language);
-
-            let database_path = github
-                .code_scanning(repository)
-                .download_codeql_database(language, &output)
-                .await?;
-
-            let db = CodeQLDatabase::load(&database_path)?;
-            databases.push(db);
-        }
-
-        Ok(databases)
+        let mut databases = CodeQLDatabases::new();
+        databases.set_path(output);
+        databases.download(repository, github).await?;
+        Ok(databases.databases())
     }
 
     fn load_database_config(path: &PathBuf) -> Result<CodeQLDatabase, GHASError> {
@@ -181,6 +218,7 @@ impl CodeQLDatabase {
         } else {
             match CodeQLDatabaseConfig::read(path) {
                 Ok(config) => CodeQLDatabase::init()
+                    .path(path.parent().unwrap_or(path))
                     .source(config.source_location_prefix.clone().unwrap_or_default())
                     .language(config.primary_language.clone())
                     .config(config.clone())
@@ -226,12 +264,14 @@ impl Display for CodeQLDatabase {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let version = self.version();
         if version.as_str() == "0.0.0" {
-            write!(f, "CodeQLDatabase('{}', '{}')", self.name, self.language)
+            write!(f, "CodeQLDatabase('{}', '{}')", self.name(), self.language)
         } else {
             write!(
                 f,
                 "CodeQLDatabase('{}', '{}', '{}')",
-                self.name, self.language, version
+                self.name(),
+                self.language,
+                version
             )
         }
     }
@@ -347,19 +387,6 @@ impl CodeQLDatabaseBuilder {
     pub fn source(mut self, source: impl Into<PathBuf>) -> Self {
         let source = source.into();
         self.source = Some(PathBuf::from(source));
-
-        if self.name.is_empty() {
-            // TODO(geekmasher): This is a bit of a hack, but it works for now
-            self.name = self
-                .source
-                .clone()
-                .unwrap()
-                .file_name()
-                .unwrap()
-                .to_str()
-                .unwrap()
-                .to_string();
-        }
         self
     }
 
@@ -414,12 +441,6 @@ impl CodeQLDatabaseBuilder {
 
     /// Build the CodeQLDatabase from the builder
     pub fn build(&self) -> Result<CodeQLDatabase, GHASError> {
-        if self.name.is_empty() {
-            return Err(GHASError::CodeQLDatabaseError(
-                "Could not determine database name".to_string(),
-            ));
-        }
-
         let path = match self.path.clone() {
             Some(p) => p,
             None => self.default_path(),
