@@ -26,6 +26,12 @@ pub struct CodeQLDatabaseConfig {
     /// Database creation metadata
     #[serde(rename = "creationMetadata")]
     pub creation_metadata: Option<CodeQLDatabaseConfigMetadata>,
+    /// Build Mode
+    #[serde(rename = "buildMode")]
+    pub build_mode: Option<String>,
+    /// Finalized
+    #[serde(default, rename = "finalised")]
+    pub finalised: bool,
 }
 
 impl CodeQLDatabaseConfig {

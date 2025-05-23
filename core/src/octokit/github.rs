@@ -77,6 +77,11 @@ impl GitHub {
         self.token.as_ref()
     }
 
+    /// Get the Base URL for the GitHub REST API
+    pub(crate) fn base(&self) -> Url {
+        self.api_rest.clone()
+    }
+
     /// Get the URL used for clong a repository.
     fn clone_repository_url(&self, repo: &Repository) -> Result<String, GHASError> {
         if self.github_app {
@@ -204,7 +209,7 @@ impl Default for GitHub {
         };
 
         Self {
-            octocrab: Octocrab::default(),
+            octocrab: octocrab::Octocrab::default(),
             owner: None,
             enterprise: None,
             token,
@@ -280,7 +285,10 @@ impl GitHubBuilder {
     /// # }
     /// ```
     pub fn token(&mut self, token: &str) -> &mut Self {
-        self.token = Some(token.to_string());
+        if !token.is_empty() {
+            log::debug!("Setting token");
+            self.token = Some(token.to_string());
+        }
         self
     }
 
@@ -294,7 +302,10 @@ impl GitHubBuilder {
 
     /// Set the Enterprise Account name.
     pub fn enterprise(&mut self, enterprise: &str) -> &mut Self {
-        self.enterprise = Some(enterprise.to_string());
+        if !enterprise.is_empty() {
+            log::debug!("Setting enterprise");
+            self.enterprise = Some(enterprise.to_string());
+        }
         self
     }
 
@@ -327,20 +338,35 @@ impl GitHubBuilder {
             None => std::env::var("GITHUB_TOKEN").ok(),
         };
 
-        let mut builder = octocrab::Octocrab::builder();
+        let mut builder = octocrab::Octocrab::builder()
+            .base_uri(self.rest_api.to_string().as_str())?
+            .add_header(
+                http::header::USER_AGENT,
+                format!("ghastoolkit/{}", env!("CARGO_PKG_VERSION")),
+            )
+            .add_header(
+                http::HeaderName::from_static("x-github-api-version"),
+                "2022-11-28".to_string(),
+            )
+            .add_header(
+                http::header::ACCEPT,
+                "application/vnd.github.v3+json".to_string(),
+            );
+
+        debug!("Setting base URI to: {}", self.rest_api);
 
         if let Some(token) = &self.token {
             debug!("Setting personal token");
             builder = builder.personal_token(token.clone());
+        } else {
+            debug!("No credential provided");
         }
 
-        debug!("Setting base URI to: {}", self.rest_api);
-        builder = builder
-            .base_uri(self.rest_api.to_string().as_str())
-            .expect("Failed to set base URI");
+        let client = builder.build()?;
+        log::debug!("Octocrab client: {:?}", client);
 
         Ok(GitHub {
-            octocrab: builder.build().expect("Failed to build Octocrab instance"),
+            octocrab: client,
             owner: self.owner.clone(),
             enterprise: self.enterprise.clone(),
             token,

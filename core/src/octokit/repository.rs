@@ -255,8 +255,10 @@ impl RepositoryBuilder {
 
     /// Set the Repository branch
     pub fn branch(&mut self, branch: &str) -> &mut Self {
-        self.branch = Some(branch.to_string());
-        self.reference = Some(format!("refs/heads/{}", branch));
+        if !branch.is_empty() {
+            self.branch = Some(branch.to_string());
+            self.reference = Some(format!("refs/heads/{}", branch));
+        }
         self
     }
 

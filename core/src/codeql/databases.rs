@@ -4,11 +4,16 @@ use log::debug;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
-use crate::codeql::database::CodeQLDatabase;
+use super::CodeQLLanguage;
+use crate::{GHASError, GitHub};
+use crate::{Repository, codeql::database::CodeQLDatabase};
 
 /// A list of CodeQL databases
 #[derive(Debug, Clone)]
 pub struct CodeQLDatabases {
+    /// The Base path for the databases
+    path: PathBuf,
+    /// The list of databases
     databases: Vec<CodeQLDatabase>,
 }
 
@@ -24,21 +29,170 @@ impl CodeQLDatabases {
     /// Create a new list of databases
     pub fn new() -> Self {
         Self {
+            path: CodeQLDatabases::default_path(),
             databases: Vec::new(),
         }
+    }
+
+    /// Set the root path where the databases are stored
+    pub fn set_path(&mut self, path: impl Into<PathBuf>) {
+        self.path = path.into();
+    }
+
+    /// Get all of the loaded databases
+    pub fn databases(&self) -> Vec<CodeQLDatabase> {
+        self.databases.clone()
     }
 
     /// Add a database to the list
     pub fn add(&mut self, database: CodeQLDatabase) {
         self.databases.push(database);
     }
+
     /// Check if the list is empty
     pub fn is_empty(&self) -> bool {
         self.databases.is_empty()
     }
+
     /// Get the number of databases in the list
     pub fn len(&self) -> usize {
         self.databases.len()
+    }
+
+    /// Dowload a database from the GitHub API
+    pub(crate) async fn download_database(
+        output: &PathBuf,
+        repository: &Repository,
+        github: &GitHub,
+        language: &CodeQLLanguage,
+    ) -> Result<CodeQLDatabase, GHASError> {
+        if github.is_enterprise_server() {
+            return Err(GHASError::CodeQLDatabaseError(
+                "CodeQL database download is not supported on GitHub Enterprise Server".to_string(),
+            ));
+        }
+
+        let dbpath = output.join("codeql-database.zip");
+        let route = format!(
+            "{base}repos/{owner}/{repo}/code-scanning/codeql/databases/{language}",
+            base = github.base(),
+            owner = repository.owner(),
+            repo = repository.name(),
+            language = language.language()
+        );
+        log::debug!("Route: {}", route);
+
+        let client = reqwest::Client::new();
+        let mut request = client
+            .get(route)
+            .header(
+                http::header::ACCEPT,
+                http::header::HeaderValue::from_str("application/zip")?,
+            )
+            .header(
+                http::header::USER_AGENT,
+                http::header::HeaderValue::from_str("ghastoolkit")?,
+            );
+
+        if let Some(token) = github.token() {
+            request = request.header(http::header::AUTHORIZATION, format!("Bearer {}", token));
+        }
+
+        let data = request.send().await?.bytes().await?;
+
+        tokio::fs::write(&dbpath, data).await?;
+        log::debug!("Database archive downloaded to {}", dbpath.display());
+
+        if !dbpath.exists() {
+            return Err(crate::GHASError::CodeQLDatabaseError(format!(
+                "Database not found at: {}",
+                output.display()
+            )));
+        }
+
+        log::debug!("Unzipping CodeQL database to {}", output.display());
+        Self::unzip_codeql_database(&dbpath, &output)?;
+
+        let mut db = CodeQLDatabase::load(output)?;
+        db.set_repository(repository);
+
+        Ok(db)
+    }
+
+    /// Download a database and store it in the CodeQL Databases path
+    pub async fn download(
+        &mut self,
+        repository: &Repository,
+        github: &GitHub,
+    ) -> Result<Vec<CodeQLDatabase>, GHASError> {
+        let mut databases = Vec::new();
+        let database_list = github
+            .code_scanning(repository)
+            .list_codeql_databases()
+            .await?;
+
+        for dbitem in database_list {
+            let language = CodeQLLanguage::from(dbitem.language);
+
+            let path = Self::default_db_path(&self.path, repository, language.language());
+            if !path.exists() {
+                debug!("Creating database path: {}", path.display());
+                tokio::fs::create_dir_all(&path).await?;
+            }
+            debug!("Downloading database to: {}", path.display());
+
+            let db = Self::download_database(&path, repository, github, &language).await?;
+            log::debug!("Database: {db:?}");
+
+            self.add(db.clone());
+            databases.push(db);
+        }
+
+        Ok(databases)
+    }
+
+    /// Download a database for a specific language
+    pub async fn download_language(
+        &mut self,
+        repository: &Repository,
+        github: &GitHub,
+        language: impl Into<CodeQLLanguage>,
+    ) -> Result<CodeQLDatabase, GHASError> {
+        let language = language.into();
+
+        let path = Self::default_db_path(&self.path, repository, language.language());
+        if !path.exists() {
+            debug!("Creating database path: {}", path.display());
+            tokio::fs::create_dir_all(&path).await?;
+        }
+        log::debug!("Downloading database to: {}", path.display());
+        let db = Self::download_database(&path, repository, github, &language).await?;
+        log::debug!("Database: {db:?}");
+
+        self.add(db.clone());
+
+        Ok(db)
+    }
+
+    /// Unzip the CodeQL database
+    fn unzip_codeql_database(zip: &PathBuf, output: &PathBuf) -> Result<(), GHASError> {
+        log::debug!("Unzipping CodeQL database to {}", output.display());
+        let file = std::fs::File::open(zip)?;
+        let mut archive = zip::ZipArchive::new(file)?;
+        archive.extract(output)?;
+
+        Ok(())
+    }
+
+    /// Create a default path for the database to be stored
+    pub(crate) fn default_db_path(
+        base: &PathBuf,
+        repo: &Repository,
+        language: impl Into<String>,
+    ) -> PathBuf {
+        base.join(repo.owner())
+            .join(repo.name())
+            .join(language.into())
     }
 
     /// Get the default path for CodeQL databases
@@ -78,9 +232,12 @@ impl CodeQLDatabases {
     }
 
     /// Walk directory to find all CodeQL databases.
-    pub fn load(path: String) -> CodeQLDatabases {
-        debug!("Loading databases from: {}", path);
+    pub fn load(path: impl Into<PathBuf>) -> CodeQLDatabases {
+        let path = path.into();
+        debug!("Loading databases from: {}", path.display());
+
         let mut databases = CodeQLDatabases::new();
+        databases.path = path.clone();
 
         WalkDir::new(path)
             .into_iter()

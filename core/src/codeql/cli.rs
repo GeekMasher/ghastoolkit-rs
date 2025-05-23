@@ -36,6 +36,9 @@ pub struct CodeQL {
     /// Additional packs to use
     additional_packs: Vec<String>,
 
+    /// Default Suite to use if not specified
+    suite: Option<String>,
+
     /// Shows the output of the command
     showoutput: bool,
 }
@@ -59,6 +62,7 @@ impl CodeQL {
             ram: None,
             search_path: Vec::new(),
             additional_packs: Vec::new(),
+            suite: None,
             showoutput: true,
         }
     }
@@ -111,6 +115,10 @@ impl CodeQL {
         }
     }
 
+    /// Get the default suite for the CodeQL CLI
+    pub fn default_suite(&self) -> String {
+        self.suite.clone().unwrap_or("code-scanning".to_string())
+    }
     /// Add an external extractor to the CodeQL CLI (search path)
     pub fn add_extractor(&mut self, extractor: &CodeQLExtractor) {
         self.search_path.push(extractor.path.clone());
@@ -406,6 +414,7 @@ impl Default for CodeQL {
             ram: None,
             search_path: Vec::new(),
             additional_packs: Vec::new(),
+            suite: None,
             showoutput: true,
         }
     }
