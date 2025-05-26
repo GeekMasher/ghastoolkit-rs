@@ -42,7 +42,7 @@ regex = "1.10"
 url = { version = "2.5", features = ["serde"] }
 walkdir = "2.5"
 time = "0.3.36"
-zip = "^3.0"
+zip = "^4.0"
 
 # For CodeQL in ToolCache
 ghactions = { version = "^0.16.1", features = ["toolcache-all"], optional = true }
