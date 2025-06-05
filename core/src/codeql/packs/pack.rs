@@ -3,16 +3,13 @@ use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
 use crate::GHASError;
 use crate::codeql::CodeQLLanguage;
+use crate::codeql::database::queries::CodeQLQueries;
 
 /// CodeQL Pack
 #[derive(Debug, Clone, Default)]
 pub struct CodeQLPack {
-    /// Name
-    pub(crate) name: String,
-    /// Owner/Namespace
-    pub(crate) namespace: String,
-    /// Version
-    pub(crate) version: Option<String>,
+    /// CodeQL Queries reference
+    pub(crate) queries: CodeQLQueries,
 
     /// Path
     pub(crate) path: PathBuf,
@@ -28,26 +25,26 @@ impl CodeQLPack {
     /// Create a new CodeQL Pack
     pub fn new(pack: impl Into<String>) -> Self {
         let pack = pack.into();
-        Self::try_from(pack.as_str()).unwrap_or_default()
+        if let Ok(path) = PathBuf::from(&pack).canonicalize() {
+            return Self::load(path).unwrap_or_default();
+        } else {
+            Self::load_remote_pack(pack).unwrap_or_default()
+        }
     }
 
     /// Get the pack name
     pub fn name(&self) -> String {
-        self.name.clone()
+        self.queries.name().unwrap_or_default()
     }
 
     /// Get the pack namespace
     pub fn namespace(&self) -> String {
-        self.namespace.clone()
+        self.queries.scope().unwrap_or_else(|| "codeql".to_string())
     }
 
-    /// Get full name (namespace/name)
+    /// Get full name (namespace/name[@version][:suite])
     pub fn full_name(&self) -> String {
-        if let Some(version) = &self.version {
-            return format!("{}/{}@{}", self.namespace, self.name, version);
-        } else {
-            format!("{}/{}", self.namespace, self.name)
-        }
+        self.to_string()
     }
 
     /// Get the root path of the CodeQL Pack
@@ -57,7 +54,7 @@ impl CodeQLPack {
 
     /// Get the pack version
     pub fn version(&self) -> Option<String> {
-        if let Some(version) = &self.version {
+        if let Some(version) = &self.queries.range() {
             return Some(version.clone());
         } else if let Some(pack) = &self.pack {
             return pack.version.clone();
@@ -77,6 +74,19 @@ impl CodeQLPack {
             }
         }
         None
+    }
+
+    /// Get the default suite file for the pack
+    pub fn suite(&self) -> Option<String> {
+        if let Some(pack) = &self.pack {
+            return pack.default_suite_file.clone();
+        }
+        None
+    }
+
+    /// Check if the pack is installed
+    pub async fn is_installed(&self) -> bool {
+        self.path.exists()
     }
 
     /// Get the list of dependencies for the pack.

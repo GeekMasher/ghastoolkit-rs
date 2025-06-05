@@ -3,6 +3,7 @@
 //! This module provides functionality to load CodeQL Packs from various sources, including local directories and remote repositories.
 use std::path::PathBuf;
 
+use crate::codeql::database::queries::CodeQLQueries;
 use crate::codeql::packs::pack::{PackYaml, PackYamlLock};
 use crate::{CodeQLPacks, GHASError};
 
@@ -46,12 +47,10 @@ impl CodeQLPack {
             },
             Err(_) => None,
         };
-        let (namespace, name) = pack.name.split_once('/').unwrap_or_default();
 
+        let queries = CodeQLQueries::from(&pack.name.clone());
         Ok(Self {
-            name: name.to_string(),
-            namespace: namespace.to_string(),
-            version: pack.version.clone(),
+            queries,
             path,
             pack: Some(pack),
             pack_type: Some(pack_type),
@@ -60,25 +59,18 @@ impl CodeQLPack {
     }
 
     pub(crate) fn load_remote_pack(remote: impl Into<String>) -> Result<Self, GHASError> {
-        let remote = remote.into();
-
-        let (namespace, name) = remote
-            .split_once('/')
-            .ok_or_else(|| GHASError::CodeQLPackError("Invalid pack name format".to_string()))?;
-        let (name, version) = if let Some((name, version)) = name.split_once('@') {
-            (name.to_string(), Some(version.to_string()))
-        } else {
-            (name.to_string(), None)
-        };
+        let queries = CodeQLQueries::from(remote.into());
 
         // Load the pack from the CodeQL Packages Directory
-        if let Ok(pack) = Self::load_package(&name, namespace, version.clone()) {
+        if let Ok(pack) = Self::load_package(
+            queries.name().unwrap_or_default(),
+            queries.scope().unwrap_or_default(),
+            queries.range(),
+        ) {
             Ok(pack)
         } else {
             Ok(Self {
-                name,
-                namespace: namespace.to_string(),
-                version,
+                queries,
                 ..Default::default()
             })
         }
@@ -94,6 +86,12 @@ impl CodeQLPack {
     ) -> Result<Self, GHASError> {
         let name = name.into();
         let namespace = namespace.into();
+        let queries = CodeQLQueries {
+            name: Some(name.clone()),
+            scope: Some(namespace.clone()),
+            range: version.clone(),
+            path: None,
+        };
         let version_num = if let Some(ref version) = version {
             version.clone()
         } else {
@@ -115,7 +113,7 @@ impl CodeQLPack {
 
         // Multiple versions of the same pack can exist in the same directory
         // Find the last / newest version
-        if let Ok(entries) = glob::glob(&path.display().to_string()) {
+        if let Ok(entries) = glob::glob(&qlpack_path.display().to_string()) {
             log::trace!("Entries: {:?}", entries);
 
             if let Some(Ok(entry)) = entries.last() {
@@ -127,9 +125,7 @@ impl CodeQLPack {
 
         // If the path does not exist, return a CodeQL Pack with the name, namespace, and version
         Ok(Self {
-            name,
-            namespace,
-            version,
+            queries,
             path: PathBuf::new(),
             ..Default::default()
         })
@@ -169,11 +165,9 @@ impl TryFrom<PathBuf> for CodeQLPack {
 
 #[cfg(test)]
 mod tests {
-    use anyhow::Context;
-
-    use crate::CodeQLPackType;
-
     use super::*;
+    use crate::CodeQLPackType;
+    use anyhow::Context;
 
     fn qlpacks() -> PathBuf {
         // Examples
@@ -189,7 +183,6 @@ mod tests {
 
         assert_eq!(pack.name(), "python-queries");
         assert_eq!(pack.namespace(), "codeql");
-        assert_eq!(pack.version(), None);
 
         let pack = CodeQLPack::try_from("codeql/python-queries@1.0.0")
             .expect("Failed to create CodeQLPack from string with version");
