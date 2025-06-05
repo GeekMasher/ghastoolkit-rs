@@ -1,27 +1,27 @@
 //! CodeQL Pack
 use std::{collections::HashMap, fmt::Display, path::PathBuf};
 
+use crate::GHASError;
 use crate::codeql::CodeQLLanguage;
-use crate::{CodeQLPacks, GHASError};
 
 /// CodeQL Pack
 #[derive(Debug, Clone, Default)]
 pub struct CodeQLPack {
     /// Name
-    name: String,
+    pub(crate) name: String,
     /// Owner/Namespace
-    namespace: String,
+    pub(crate) namespace: String,
     /// Version
-    version: Option<String>,
+    pub(crate) version: Option<String>,
 
     /// Path
-    path: PathBuf,
+    pub(crate) path: PathBuf,
     /// Pack Yaml
-    pack: Option<PackYaml>,
+    pub(crate) pack: Option<PackYaml>,
     /// Pack Type
-    pack_type: Option<CodeQLPackType>,
+    pub(crate) pack_type: Option<CodeQLPackType>,
     /// Pack Lock
-    pack_lock: Option<PackYamlLock>,
+    pub(crate) pack_lock: Option<PackYamlLock>,
 }
 
 impl CodeQLPack {
@@ -30,14 +30,17 @@ impl CodeQLPack {
         let pack = pack.into();
         Self::try_from(pack.as_str()).unwrap_or_default()
     }
+
     /// Get the pack name
     pub fn name(&self) -> String {
         self.name.clone()
     }
+
     /// Get the pack namespace
     pub fn namespace(&self) -> String {
         self.namespace.clone()
     }
+
     /// Get full name (namespace/name)
     pub fn full_name(&self) -> String {
         if let Some(version) = &self.version {
@@ -51,6 +54,7 @@ impl CodeQLPack {
     pub fn path(&self) -> PathBuf {
         self.path.clone()
     }
+
     /// Get the pack version
     pub fn version(&self) -> Option<String> {
         if let Some(version) = &self.version {
@@ -165,101 +169,8 @@ impl CodeQLPack {
             .map(|_| ())?)
     }
 
-    /// Load a QLPack from a path (root directory or qlpack.yml file)
-    pub fn load(path: impl Into<PathBuf>) -> Result<Self, GHASError> {
-        // Path is the directory
-        let mut path: PathBuf = path.into();
-
-        if !path.exists() {
-            return Err(GHASError::CodeQLPackError(path.display().to_string()));
-        }
-        if path.is_file() {
-            // TODO: Is this the best way to handle this?
-            path = path.parent().unwrap().to_path_buf();
-        }
-
-        let qlpack_path = path.join("qlpack.yml");
-        let qlpack_lock_path = path.join("codeql-pack.lock.yml");
-
-        if !qlpack_path.exists() {
-            return Err(GHASError::CodeQLPackError(
-                "qlpack.yml file does not exist".to_string(),
-            ));
-        }
-
-        let pack: PackYaml = match serde_yaml::from_reader(std::fs::File::open(&qlpack_path)?) {
-            Ok(p) => p,
-            Err(e) => return Err(GHASError::YamlError(e)),
-        };
-        let pack_type = Self::get_pack_type(&pack);
-
-        let pack_lock: Option<PackYamlLock> = match std::fs::File::open(qlpack_lock_path) {
-            Ok(f) => match serde_yaml::from_reader(f) {
-                Ok(p) => Some(p),
-                Err(e) => return Err(GHASError::YamlError(e)),
-            },
-            Err(_) => None,
-        };
-        let (namespace, name) = pack.name.split_once('/').unwrap_or_default();
-
-        Ok(Self {
-            name: name.to_string(),
-            namespace: namespace.to_string(),
-            version: pack.version.clone(),
-            path,
-            pack: Some(pack),
-            pack_type: Some(pack_type),
-            pack_lock,
-        })
-    }
-
-    /// Load a CodeQL Pack from the CodeQL Packages Directory
-    fn load_package(
-        name: impl Into<String>,
-        namespace: impl Into<String>,
-        version: Option<String>,
-    ) -> Result<Self, GHASError> {
-        let name = name.into();
-        let namespace = namespace.into();
-        let version_num = if let Some(ref version) = version {
-            version.clone()
-        } else {
-            "**".to_string()
-        };
-
-        let path = CodeQLPacks::codeql_packages_path()
-            .join(&namespace)
-            .join(&name)
-            .join(version_num);
-
-        if path.join("qlpack.yml").exists() {
-            log::debug!("Loading pack from path: {}", path.display());
-            return Self::load(path);
-        }
-
-        // Multiple versions of the same pack can exist in the same directory
-        // Find the last / newest version
-        let entries = glob::glob(&path.display().to_string())?;
-        log::trace!("Entries: {:?}", entries);
-
-        if let Some(Ok(entry)) = entries.last() {
-            if entry.exists() {
-                return Self::load(entry.clone());
-            }
-        }
-
-        // If the path does not exist, return a CodeQL Pack with the name, namespace, and version
-        Ok(Self {
-            name,
-            namespace,
-            version: version.clone(),
-            path,
-            ..Default::default()
-        })
-    }
-
     /// Based on the loaded YAML, determine the pack type
-    fn get_pack_type(pack_yaml: &PackYaml) -> CodeQLPackType {
+    pub(crate) fn get_pack_type(pack_yaml: &PackYaml) -> CodeQLPackType {
         if let Some(library) = pack_yaml.library {
             if library && pack_yaml.data_extensions.is_some() {
                 return CodeQLPackType::Models;
@@ -283,42 +194,6 @@ impl Display for CodeQLPack {
         } else {
             write!(f, "{} ({})", self.name(), self.pack_type(),)
         }
-    }
-}
-
-impl TryFrom<&str> for CodeQLPack {
-    type Error = GHASError;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        let path = PathBuf::from(value);
-
-        if path.exists() {
-            Self::load(path.clone())
-        } else {
-            let (namespace, name) = value.split_once('/').unwrap_or_default();
-
-            if let Some((name, version)) = name.split_once('@') {
-                Self::load_package(name, namespace, Some(version.to_string()))
-            } else {
-                Self::load_package(name, namespace, None)
-            }
-        }
-    }
-}
-
-impl TryFrom<String> for CodeQLPack {
-    type Error = GHASError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::try_from(value.as_str())
-    }
-}
-
-impl TryFrom<PathBuf> for CodeQLPack {
-    type Error = GHASError;
-
-    fn try_from(value: PathBuf) -> Result<Self, Self::Error> {
-        Self::load(value)
     }
 }
 
@@ -398,49 +273,4 @@ pub struct PackYamlLock {
 pub struct PackYamlLockDependency {
     /// Version
     pub version: String,
-}
-
-#[cfg(test)]
-mod tests {
-    use anyhow::Context;
-
-    use super::*;
-
-    fn qlpacks() -> PathBuf {
-        // Examples
-        let mut path = std::env::current_dir().unwrap();
-        path.push("../examples/codeql-packs/java/src");
-        path.canonicalize().unwrap()
-    }
-
-    #[test]
-    fn test_codeql_pack() {
-        let pack = CodeQLPack::try_from("codeql/python-queries").unwrap();
-
-        assert_eq!(pack.name(), "python-queries");
-        assert_eq!(pack.namespace(), "codeql");
-        assert_eq!(pack.version(), None);
-
-        let pack = CodeQLPack::try_from("codeql/python-queries@1.0.0").unwrap();
-
-        assert_eq!(pack.name(), "python-queries");
-        assert_eq!(pack.namespace(), "codeql");
-        assert_eq!(pack.version(), Some("1.0.0".to_string()));
-    }
-
-    #[test]
-    fn test_codeql_pack_path() {
-        let path = qlpacks();
-        assert!(path.exists());
-
-        let pack = CodeQLPack::try_from(path.clone())
-            .context(format!("Failed to load pack from path: {}", path.display()))
-            .unwrap();
-
-        assert_eq!(pack.path(), path);
-        assert_eq!(pack.name(), "codeql-java");
-        assert_eq!(pack.namespace(), "geekmasher");
-        assert_eq!(pack.version(), Some("1.0.0".to_string()));
-        assert_eq!(pack.pack_type(), CodeQLPackType::Queries);
-    }
 }

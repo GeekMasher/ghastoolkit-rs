@@ -1,5 +1,6 @@
 //! CodeQL Packs
 
+pub mod loader;
 pub mod pack;
 pub mod packs;
 
