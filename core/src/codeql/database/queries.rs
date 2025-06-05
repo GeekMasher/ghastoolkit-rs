@@ -2,19 +2,77 @@
 
 use std::path::PathBuf;
 
-use crate::codeql::languages::CODEQL_LANGUAGES;
+use crate::{GHASError, codeql::languages::CODEQL_LANGUAGES};
 
 /// A collection of CodeQL Queries
 /// scope/name@range:path
 #[derive(Debug, Default, Clone)]
 pub struct CodeQLQueries {
-    scope: Option<String>,
-    name: Option<String>,
-    range: Option<String>,
-    path: Option<PathBuf>,
+    pub(crate) scope: Option<String>,
+    pub(crate) name: Option<String>,
+    pub(crate) range: Option<String>,
+    pub(crate) path: Option<PathBuf>,
 }
 
 impl CodeQLQueries {
+    /// Parse a string into a CodeQLQueries instance
+    pub fn parse(value: impl Into<String>) -> Result<Self, GHASError> {
+        let value = value.into();
+        if value.is_empty() {
+            return Err(GHASError::CodeQLPackError(
+                "CodeQLQueries cannot be empty".to_string(),
+            ));
+        }
+
+        // Absolute or relative path
+        if value.starts_with('/') || value.starts_with('.') {
+            Ok(Self {
+                path: Some(PathBuf::from(value)),
+                ..Default::default()
+            })
+        } else {
+            let mut scope = None;
+            let mut name = None;
+            let mut range = None;
+            let mut path = None;
+
+            if let Some((scp, nm)) = value.split_once('/') {
+                scope = Some(scp.to_string());
+
+                match nm.split_once('@') {
+                    Some((n, rng)) => {
+                        name = Some(n.to_string());
+                        match rng.split_once(':') {
+                            Some((r, p)) => {
+                                range = Some(r.to_string());
+                                path = Some(PathBuf::from(p));
+                            }
+                            None => {
+                                range = Some(rng.to_string());
+                            }
+                        }
+                    }
+                    None => {
+                        name = Some(nm.to_string());
+                    }
+                }
+            } else if CODEQL_LANGUAGES
+                .iter()
+                .find(|lang| lang.0 == value)
+                .is_some()
+            {
+                return Ok(Self::language_default(&value));
+            }
+
+            Ok(Self {
+                scope,
+                name,
+                range,
+                path,
+            })
+        }
+    }
+
     /// Create new CodeQL Queries from language
     pub fn language_default(language: &str) -> Self {
         Self {
@@ -22,6 +80,21 @@ impl CodeQLQueries {
             name: Some(format!("{language}-queries")),
             ..Default::default()
         }
+    }
+
+    /// Name of the query
+    pub fn name(&self) -> Option<String> {
+        self.name.clone()
+    }
+
+    /// Get the scope/namespace of the query
+    pub fn scope(&self) -> Option<String> {
+        self.scope.clone()
+    }
+
+    /// Get the range/version of the query
+    pub fn range(&self) -> Option<String> {
+        self.range.clone()
     }
 
     /// Get the suite path
@@ -73,59 +146,28 @@ impl ToString for CodeQLQueries {
 
 impl From<&str> for CodeQLQueries {
     fn from(value: &str) -> Self {
-        // Absolute or relative path
-        if value.starts_with('/') || value.starts_with('.') {
-            Self {
-                path: Some(PathBuf::from(value)),
-                ..Default::default()
-            }
-        } else {
-            let mut scope = None;
-            let mut name = None;
-            let mut range = None;
-            let mut path = None;
-
-            if let Some((scp, nm)) = value.split_once('/') {
-                scope = Some(scp.to_string());
-
-                match nm.split_once('@') {
-                    Some((n, rng)) => {
-                        name = Some(n.to_string());
-                        match rng.split_once(':') {
-                            Some((r, p)) => {
-                                range = Some(r.to_string());
-                                path = Some(PathBuf::from(p));
-                            }
-                            None => {
-                                range = Some(rng.to_string());
-                            }
-                        }
-                    }
-                    None => {
-                        name = Some(nm.to_string());
-                    }
-                }
-            } else if CODEQL_LANGUAGES
-                .iter()
-                .find(|lang| lang.0 == value)
-                .is_some()
-            {
-                return Self::language_default(value);
-            }
-
-            Self {
-                scope,
-                name,
-                range,
-                path,
-            }
-        }
+        Self::parse(value).unwrap_or_else(|_| {
+            log::error!("Failed to parse CodeQLQueries from '{}'", value);
+            Self::default()
+        })
     }
 }
 
 impl From<String> for CodeQLQueries {
     fn from(value: String) -> Self {
-        Self::from(value.as_str())
+        Self::parse(&value).unwrap_or_else(|_| {
+            log::error!("Failed to parse CodeQLQueries from '{}'", value);
+            Self::default()
+        })
+    }
+}
+
+impl From<&String> for CodeQLQueries {
+    fn from(value: &String) -> Self {
+        Self::parse(value).unwrap_or_else(|_| {
+            log::error!("Failed to parse CodeQLQueries from '{}'", value);
+            Self::default()
+        })
     }
 }
 
@@ -137,7 +179,9 @@ mod tests {
 
     #[test]
     fn test_pack() {
-        let queries = CodeQLQueries::from("codeql/python-queries");
+        let queries = CodeQLQueries::parse("codeql/python-queries")
+            .expect("Failed to parse CodeQLQueries from string");
+
         assert_eq!(queries.scope, Some("codeql".to_string()));
         assert_eq!(queries.name, Some("python-queries".to_string()));
         assert_eq!(queries.range, None);

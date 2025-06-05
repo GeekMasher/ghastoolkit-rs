@@ -80,9 +80,9 @@ impl CodeQLBuilder {
         self
     }
 
-    /// Set the default suite for the CodeQL CLI
-    pub fn suite(mut self, suite: String) -> Self {
-        self.suite = Some(suite);
+    /// Set the default suite for the CodeQL CLI to use
+    pub fn suite(mut self, suite: impl Into<String>) -> Self {
+        self.suite = Some(suite.into());
         self
     }
 
