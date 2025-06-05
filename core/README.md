@@ -24,7 +24,7 @@ This toolkit is designed to help developers and security researchers to interact
 You can use the `GitHub` and `Repository` structs to interact with the GitHub API.
 
 ```rust no_run
-use ghastoolkit::{GitHub, Repository};
+use ghastoolkit::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -44,8 +44,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 You can use the `CodeQL` struct to interact with the CodeQL CLI.
 
 ```rust no_run
-use ghastoolkit::{CodeQL, CodeQLDatabase, CodeQLDatabases};
-use ghastoolkit::{GitHub, Repository};
+use ghastoolkit::prelude::*;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
