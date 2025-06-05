@@ -60,10 +60,10 @@ impl CodeQLDatabase {
                 let components = path.components().collect::<Vec<_>>();
                 if components.len() == 1 {
                     // If there is only one component, it is the name
-                    return components[0].as_os_str().to_str().unwrap().to_string();
+                    return components[0].as_os_str().to_string_lossy().to_string();
                 } else if components.len() > 1 {
                     // If there are more than one component, it is the name
-                    return components[1].as_os_str().to_str().unwrap().to_string();
+                    return components[1].as_os_str().to_string_lossy().to_string();
                 }
             } else if let Some(source) = &self.source {
                 // TODO(geekmasher): This is a bit of a hack, but it works for now
