@@ -446,8 +446,30 @@ impl CodeQLDatabaseBuilder {
             None => self.default_path(),
         };
 
+        let name = if self.name.is_empty() {
+            if let Some(ref repo) = self.repository {
+                // If a repository is set, use its name
+                repo.name().to_string()
+            } else if let Some(ref source) = self.source {
+                // If the source is set, use it to derive the name
+                source
+                    .file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unknown")
+                    .to_string()
+            } else {
+                // Fallback to the path if no name is set
+                path.file_name()
+                    .and_then(|s| s.to_str())
+                    .unwrap_or("unknown")
+                    .to_string()
+            }
+        } else {
+            self.name.clone()
+        };
+
         Ok(CodeQLDatabase {
-            name: self.name.clone(),
+            name,
             path,
             language: self.language.clone(),
             source: self.source.clone(),
@@ -459,7 +481,7 @@ impl CodeQLDatabaseBuilder {
 
 #[cfg(test)]
 mod tests {
-    use crate::CodeQLDatabase;
+    use crate::{CodeQLDatabase, Repository};
     use std::path::PathBuf;
 
     #[test]
@@ -497,13 +519,27 @@ mod tests {
             .expect("Failed to build database");
 
         assert_eq!(db.name, "test-repo");
+    }
 
+    #[test]
+    fn test_database_from_source() {
         let db2 = CodeQLDatabase::init()
             .source(String::from("/tmp/test-repo"))
             .language("python".to_string())
             .build()
             .expect("Failed to build database");
-
         assert_eq!(db2.name, "test-repo");
+    }
+
+    #[test]
+    fn test_database_from_repository() {
+        let repo = Repository::parse("geekmasher/test-repo").unwrap();
+        let db3 = CodeQLDatabase::init()
+            .repository(&repo)
+            .language("python".to_string())
+            .build()
+            .expect("Failed to build database");
+
+        assert_eq!(db3.name, "test-repo");
     }
 }
