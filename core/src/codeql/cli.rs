@@ -8,7 +8,7 @@ use std::{
 use tokio::io::{AsyncBufReadExt, BufReader};
 
 use crate::{
-    CodeQLDatabase, GHASError,
+    CodeQLDatabase, CodeQLPack, GHASError,
     codeql::{CodeQLLanguage, database::handler::CodeQLDatabaseHandler},
     utils::sarif::Sarif,
 };
@@ -16,7 +16,7 @@ use crate::{
 pub mod builder;
 mod models;
 
-use super::{CodeQLExtractor, languages::CodeQLLanguages};
+use super::{CodeQLExtractor, languages::CodeQLLanguages, packs::handler::CodeQLPackHandler};
 pub use builder::CodeQLBuilder;
 use models::ResolvedLanguages;
 
@@ -37,7 +37,7 @@ pub struct CodeQL {
     additional_packs: Vec<String>,
 
     /// Default Suite to use if not specified
-    suite: Option<String>,
+    pub(crate) suite: Option<String>,
 
     /// Shows the output of the command
     showoutput: bool,
@@ -248,6 +248,14 @@ impl CodeQL {
     #[allow(elided_named_lifetimes)]
     pub fn database<'a>(&'a self, db: &'a CodeQLDatabase) -> CodeQLDatabaseHandler {
         CodeQLDatabaseHandler::new(db, self)
+    }
+
+    /// Pass a CodeQLPack to the CodeQL CLI to return a CodeQLPackHandler.
+    ///
+    /// This handler can be used to run queries and other operations on the pack.
+    #[allow(elided_named_lifetimes)]
+    pub fn pack<'a>(&'a self, pack: &'a CodeQLPack) -> CodeQLPackHandler {
+        CodeQLPackHandler::new(pack, self)
     }
 
     /// An async function to run a CodeQL scan on a database.
