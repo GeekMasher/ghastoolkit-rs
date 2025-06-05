@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 
 use crate::codeql::database::queries::CodeQLQueries;
-use crate::codeql::packs::pack::{PackYaml, PackYamlLock};
+use crate::codeql::packs::{PackYaml, PackYamlLock};
 use crate::{CodeQLPacks, GHASError};
 
 /// # CodeQLPack Loader

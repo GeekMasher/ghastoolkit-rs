@@ -27,18 +27,18 @@ impl<'db, 'ql> CodeQLPackHandler<'db, 'ql> {
 
     /// Sets the suite name for the pack handler.
     pub fn suite(mut self, suite: impl Into<String>) -> Self {
-        let queries = CodeQLQueries::from(suite.into());
-        self.suite = queries.suite();
+        self.suite = match CodeQLQueries::parse(suite.into()) {
+            Ok(q) => q.suite(),
+            Err(e) => Some(e.to_string()),
+        };
         self
     }
 
     fn get_suite(&self) -> Option<String> {
         if let Some(suite) = &self.suite {
-            let queries = CodeQLQueries::from(suite.clone());
-            return Some(queries.suite().unwrap_or_default());
+            return Some(suite.clone());
         } else if let Some(suite) = &self.codeql.suite {
-            let queries = CodeQLQueries::from(suite.clone());
-            return Some(queries.suite().unwrap_or_default());
+            return Some(suite.clone());
         }
         None
     }

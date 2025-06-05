@@ -5,6 +5,9 @@ use crate::GHASError;
 use crate::codeql::CodeQLLanguage;
 use crate::codeql::database::queries::CodeQLQueries;
 
+use super::models::CodeQLPackType;
+use super::{PackYaml, PackYamlLock};
+
 /// CodeQL Pack
 #[derive(Debug, Clone, Default)]
 pub struct CodeQLPack {
@@ -44,7 +47,15 @@ impl CodeQLPack {
 
     /// Get full name (namespace/name[@version][:suite])
     pub fn full_name(&self) -> String {
-        self.to_string()
+        let mut full_name = format!("{}/{}", self.namespace(), self.name());
+        if let Some(version) = self.queries.range() {
+            full_name.push_str(&format!("@{}", version));
+        }
+        if let Some(suite) = self.queries.suite() {
+            full_name.push_str(&format!(":{}", suite));
+        }
+
+        full_name
     }
 
     /// Get the root path of the CodeQL Pack
@@ -207,80 +218,28 @@ impl Display for CodeQLPack {
     }
 }
 
-/// CodeQL Pack Type
-#[derive(Debug, Clone, Default, PartialEq, Eq, PartialOrd, Ord)]
-pub enum CodeQLPackType {
-    /// CodeQL Library
-    Library,
-    /// CodeQL Queries
-    #[default]
-    Queries,
-    /// CodeQL Models
-    Models,
-    /// CodeQL Testing
-    Testing,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-impl Display for CodeQLPackType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CodeQLPackType::Library => write!(f, "Library"),
-            CodeQLPackType::Queries => write!(f, "Queries"),
-            CodeQLPackType::Models => write!(f, "Models"),
-            CodeQLPackType::Testing => write!(f, "Testing"),
-        }
+    #[test]
+    fn test_codeql_pack_display() {
+        let pack = CodeQLPack::new("codeql/javascript-queries@1.0.0");
+        assert_eq!(pack.to_string(), "javascript-queries (Queries) - v1.0.0");
     }
-}
 
-/// CodeQL Pack Yaml Structure
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-pub struct PackYaml {
-    /// The Pack Name
-    pub name: String,
-    /// Pack is a Library or not
-    pub library: Option<bool>,
-    /// The Pack Version
-    pub version: Option<String>,
-    /// Pack Groups
-    pub groups: Option<Vec<String>>,
-    /// The Pack Dependencies
-    pub dependencies: Option<HashMap<String, String>>,
+    #[test]
+    fn test_codeql_pack_full_name() {
+        let pack = CodeQLPack::new("codeql/javascript-queries@1.0.0");
+        assert_eq!(pack.full_name(), "codeql/javascript-queries@1.0.0");
+    }
 
-    /// The Pack Suites
-    pub suites: Option<String>,
-    /// The Pack Default Suite File
-    #[serde(rename = "defaultSuiteFile")]
-    pub default_suite_file: Option<String>,
+    #[test]
+    fn test_codeql_pack_namespace() {
+        let pack = CodeQLPack::new("codeql/javascript-queries");
+        assert_eq!(pack.namespace(), "codeql");
+        assert_eq!(pack.name(), "javascript-queries");
 
-    /// The Pack Extractor name
-    pub extractor: Option<String>,
-
-    /// Extension Targets
-    #[serde(rename = "extensionTargets")]
-    pub extension_targets: Option<HashMap<String, String>>,
-    /// Data Extensions
-    #[serde(rename = "dataExtensions")]
-    pub data_extensions: Option<Vec<String>>,
-
-    /// The Pack Tests Directory
-    pub tests: Option<String>,
-}
-
-/// CodeQL Pack Lock Yaml Structure
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-pub struct PackYamlLock {
-    /// Lock Version
-    #[serde(rename = "lockVersion")]
-    pub lock_version: String,
-    /// Dependencies
-    pub dependencies: HashMap<String, PackYamlLockDependency>,
-    /// If the pack is compiled
-    pub compiled: bool,
-}
-
-/// CodeQL Pack Lock Dependency
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-pub struct PackYamlLockDependency {
-    /// Version
-    pub version: String,
+        assert_eq!(pack.full_name(), "codeql/javascript-queries");
+    }
 }
