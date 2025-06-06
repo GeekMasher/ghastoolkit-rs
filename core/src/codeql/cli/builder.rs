@@ -18,6 +18,9 @@ pub struct CodeQLBuilder {
 
     search_paths: Vec<PathBuf>,
     additional_packs: Vec<String>,
+
+    token: Option<String>,
+
     suite: Option<String>,
     showoutput: bool,
 }
@@ -92,6 +95,25 @@ impl CodeQLBuilder {
         self
     }
 
+    /// Set the token for the CodeQL CLI
+    /// 
+    /// ```no_run
+    /// use ghastoolkit::CodeQL;
+    ///
+    /// # #[tokio::main]
+    /// # async fn main() {
+    /// let codeql = CodeQL::init()
+    ///     .token("my-token")
+    ///     .build()
+    ///     .await
+    ///     .expect("Failed to create CodeQL instance");
+    /// # }
+    /// ```
+    pub fn token(mut self, token: impl Into<String>) -> Self {
+        self.token = Some(token.into());
+        self
+    }
+
     /// Build the CodeQL instance
     pub async fn build(&self) -> Result<CodeQL, GHASError> {
         let path: PathBuf = match self.path {
@@ -112,6 +134,7 @@ impl CodeQLBuilder {
             ram: self.ram.into(),
             additional_packs: self.additional_packs.clone(),
             search_path: self.search_paths.clone(),
+            token: self.token.clone(),
             suite: self.suite.clone(),
             showoutput: self.showoutput,
         })
@@ -141,5 +164,16 @@ mod tests {
         assert_eq!(codeql.additional_packs, vec!["my-pack".to_string()]);
         assert_eq!(codeql.search_path, vec![PathBuf::from("/path/to/search")]);
         assert_eq!(codeql.showoutput, true);
+    }
+
+    #[tokio::test]
+    async fn test_codeql_builder_token() {
+        let codeql = CodeQLBuilder::default()
+            .token("my-token")
+            .build()
+            .await
+            .unwrap();
+
+        assert_eq!(codeql.token, Some("my-token".to_string()));
     }
 }
