@@ -142,3 +142,32 @@ pub struct ListCodeQLDatabase {
     /// Updated At
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
+
+/// Code Scanning Configuration for Default Setup
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Hash, Eq, PartialEq)]
+pub struct CodeScanningConfiguration {
+    /// State of the configuration
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub state: String,
+    /// Languages to scan
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub languages: Vec<String>,
+    /// Query suite to use
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub query_suite: String,
+    /// Threat model
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub threat_model: String,
+    /// Action runner type
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner_type: Option<String>,
+    /// Action runner label
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub runner_label: Option<String>,
+    /// Last updated at time
+    #[serde(skip_serializing)]
+    pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Schedule for scanning
+    #[serde(skip_serializing)]
+    pub schedule: Option<String>,
+}

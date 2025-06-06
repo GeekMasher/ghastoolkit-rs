@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use super::models::ListCodeQLDatabase;
+use super::{CodeScanningHandler, models::ListCodeQLDatabase};
 use crate::{
     GHASError, Repository,
     codeql::CodeQLLanguage,
@@ -8,13 +8,6 @@ use crate::{
 };
 use log::debug;
 use octocrab::{Octocrab, Page, Result as OctoResult};
-
-/// Code Scanning Handler
-#[derive(Debug, Clone)]
-pub struct CodeScanningHandler<'octo> {
-    crab: &'octo Octocrab,
-    repository: &'octo Repository,
-}
 
 impl<'octo> CodeScanningHandler<'octo> {
     /// Create a new Code Scanning Handler instance

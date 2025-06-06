@@ -6,8 +6,8 @@ use octocrab::{Octocrab, Result as OctoResult};
 use url::Url;
 
 use crate::{
-    GHASError, Repository, codescanning::api::CodeScanningHandler,
-    octokit::models::GitHubLanguages, secretscanning::api::SecretScanningHandler,
+    GHASError, Repository, codescanning::CodeScanningHandler, octokit::models::GitHubLanguages,
+    secretscanning::api::SecretScanningHandler,
 };
 
 /// GitHub instance
