@@ -30,11 +30,20 @@ pub use utils::sarif::Sarif;
 #[doc(hidden)]
 #[allow(unused_imports, missing_docs)]
 pub mod prelude {
-    pub use crate::codeql::extractors::{BuildMode, CodeQLExtractor};
-    pub use crate::codeql::packs::{CodeQLPack, CodeQLPackType, CodeQLPacks};
-    pub use crate::codeql::{CodeQL, CodeQLDatabase, CodeQLDatabases};
     pub use crate::errors::GHASError;
     pub use crate::octokit::github::GitHub;
     pub use crate::octokit::repository::Repository;
+
+    // CodeQL
+    pub use crate::codeql::extractors::{BuildMode, CodeQLExtractor};
+    pub use crate::codeql::packs::{CodeQLPack, CodeQLPackType, CodeQLPacks};
+    pub use crate::codeql::{CodeQL, CodeQLDatabase, CodeQLDatabases};
+
+    // Code Scanning
+    pub use crate::codescanning::models::{
+        CodeScanningAlert, CodeScanningAnalysis, CodeScanningConfiguration,
+    };
+
+    // Supply Chain
     pub use crate::supplychain::{Dependencies, Dependency, License, Licenses};
 }
