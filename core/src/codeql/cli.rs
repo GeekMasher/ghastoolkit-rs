@@ -36,6 +36,9 @@ pub struct CodeQL {
     /// Additional packs to use
     additional_packs: Vec<String>,
 
+    /// Token to use for authentication with CodeQL registries
+    token: Option<String>,
+
     /// Default Suite to use if not specified
     pub(crate) suite: Option<String>,
 
@@ -62,6 +65,7 @@ impl CodeQL {
             ram: None,
             search_path: Vec::new(),
             additional_packs: Vec::new(),
+            token: None,
             suite: None,
             showoutput: true,
         }
@@ -196,12 +200,29 @@ impl CodeQL {
     }
 
     /// Run a CodeQL command asynchronously
+    /// 
+    /// This function will run the CodeQL command with the given arguments and return the output.
+    /// 
+    /// It will also set the `CODEQL_REGISTRIES_AUTH` environment variable if a token is provided.
     pub async fn run(&self, args: Vec<impl AsRef<str>>) -> Result<String, GHASError> {
         let args: Vec<String> = args.iter().map(|arg| arg.as_ref().to_string()).collect();
         debug!("CodeQL::run({:?})", args);
 
+        // Insert CODEQL_REGISTRIES_AUTH to the env
+        let mut envs = std::env::vars_os()
+            .map(|(k, v)| (k.to_string_lossy().to_string(), v))
+            .collect::<std::collections::HashMap<String, std::ffi::OsString>>();
+        if let Some(token) = &self.token {
+            envs.insert(
+                "CODEQL_REGISTRIES_AUTH".to_string(),
+                token.to_string().into()
+            );
+        }
+
+
         let mut cmd = tokio::process::Command::new(&self.path)
             .args(args)
+            .envs(envs)
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::inherit())
             .spawn()?;
@@ -422,6 +443,7 @@ impl Default for CodeQL {
             ram: None,
             search_path: Vec::new(),
             additional_packs: Vec::new(),
+            token: None,
             suite: None,
             showoutput: true,
         }
