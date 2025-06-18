@@ -89,6 +89,7 @@ pub struct SarifResult {
     /// Rule
     pub rule: SarifRule,
     /// Level
+    #[serde(default)]
     pub level: String,
     /// Message
     pub message: SarifMessage,
@@ -138,6 +139,7 @@ pub struct SarifArtifactLocation {
     #[serde(rename = "uriBaseId")]
     pub uri_base_id: String,
     /// ID
+    #[serde(default)]
     pub id: i32,
 }
 
@@ -148,7 +150,7 @@ pub struct SarifRegion {
     #[serde(rename = "startLine")]
     pub start_line: i32,
     /// Start Column
-    #[serde(rename = "startColumn")]
+    #[serde(default, rename = "startColumn")]
     pub start_column: i32,
     /// End Line
     #[serde(rename = "endLine")]
