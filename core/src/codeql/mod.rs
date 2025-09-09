@@ -82,9 +82,11 @@ pub mod download;
 pub mod extractors;
 pub mod languages;
 pub mod packs;
+pub mod version;
 
 pub use cli::CodeQL;
 pub use database::CodeQLDatabase;
 pub use databases::CodeQLDatabases;
 pub use extractors::CodeQLExtractor;
 pub use languages::CodeQLLanguage;
+pub use version::CodeQLVersion;

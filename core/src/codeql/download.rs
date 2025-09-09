@@ -3,7 +3,7 @@
 //! The `CodeQL` struct provides methods to download the CodeQL CLI from GitHub
 //! using the GitHub Actions Tool Cache.
 
-use super::CodeQL;
+use super::{CodeQL, CodeQLVersion};
 use crate::GHASError;
 use ghactions::{ToolCache, ToolPlatform};
 
@@ -11,7 +11,9 @@ impl CodeQL {
     /// Download the CodeQL CLI from GitHub using the GitHub Actions Tool Cache
     pub async fn download(client: &octocrab::Octocrab) -> Result<Self, GHASError> {
         let mut codeql = CodeQL::default();
-        codeql.download_version(client, "latest").await?;
+        codeql
+            .download_version(client, CodeQLVersion::Latest)
+            .await?;
         Ok(codeql)
     }
 
@@ -19,7 +21,7 @@ impl CodeQL {
     pub async fn install(
         &mut self,
         client: &octocrab::Octocrab,
-        version: &str,
+        version: impl Into<CodeQLVersion>,
     ) -> Result<(), GHASError> {
         if !self.is_installed().await {
             self.download_version(client, version).await?;
@@ -36,10 +38,12 @@ impl CodeQL {
     pub async fn download_version(
         &mut self,
         client: &octocrab::Octocrab,
-        version: &str,
+        version: impl Into<CodeQLVersion>,
     ) -> Result<(), GHASError> {
+        let version = version.into();
+
         let toolcache = ToolCache::new();
-        let path = toolcache.new_tool_path("codeql", version);
+        let path = toolcache.new_tool_path("codeql", version.to_string().as_str());
 
         let codeql_archive = path.join("codeql.zip");
         log::debug!("CodeQL CLI archive path: {:?}", codeql_archive);
@@ -94,22 +98,35 @@ impl CodeQL {
 
     async fn get_codeql_release(
         client: &octocrab::Octocrab,
-        version: &str,
+        version: impl Into<CodeQLVersion>,
     ) -> Result<octocrab::models::repos::Release, GHASError> {
-        if version == "latest" {
-            log::debug!("Fetching latest CodeQL CLI release");
-            Ok(client
-                .repos("github", "codeql-cli-binaries")
-                .releases()
-                .get_latest()
-                .await?)
-        } else {
-            log::debug!("Fetching CodeQL CLI release by tag: {}", version);
-            Ok(client
-                .repos("github", "codeql-cli-binaries")
-                .releases()
-                .get_by_tag(version)
-                .await?)
+        let version = version.into();
+
+        match version {
+            CodeQLVersion::Nightly => {
+                log::debug!("Fetching nightly CodeQL CLI release");
+                Ok(client
+                    .repos("dsp-testing", "codeql-cli-nightlies")
+                    .releases()
+                    .get_latest()
+                    .await?)
+            }
+            CodeQLVersion::Latest => {
+                log::debug!("Fetching latest CodeQL CLI release");
+                Ok(client
+                    .repos("github", "codeql-cli-binaries")
+                    .releases()
+                    .get_latest()
+                    .await?)
+            }
+            CodeQLVersion::Version(ver) => {
+                log::debug!("Fetching CodeQL CLI release by tag: {}", ver);
+                Ok(client
+                    .repos("github", "codeql-cli-binaries")
+                    .releases()
+                    .get_by_tag(ver.as_str())
+                    .await?)
+            }
         }
     }
 
