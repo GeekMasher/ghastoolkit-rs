@@ -15,6 +15,7 @@ use crate::{
 
 pub mod builder;
 mod models;
+pub mod packs;
 
 use super::{CodeQLExtractor, languages::CodeQLLanguages, packs::handler::CodeQLPackHandler};
 pub use builder::CodeQLBuilder;
