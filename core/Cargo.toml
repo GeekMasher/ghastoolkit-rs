@@ -33,7 +33,7 @@ git2 = "0.20"
 glob = "0.3"
 
 # GitHub API
-octocrab = { version = "^0.47" }
+octocrab = { version = "^0.48" }
 reqwest = { version = "^0.12" }
 http = "1.3"
 
