@@ -21,6 +21,12 @@ impl CodeQLPacks {
     pub fn sort(&mut self) {
         self.packs.sort_by(|a, b| a.pack_type().cmp(&b.pack_type()));
     }
+
+    /// Add a pack to the collection
+    pub fn add(&mut self, pack: CodeQLPack) {
+        self.packs.push(pack);
+    }
+
     /// Get the packs
     pub fn packs(&self) -> &[CodeQLPack] {
         &self.packs
